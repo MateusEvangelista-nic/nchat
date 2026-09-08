@@ -2094,6 +2094,74 @@ pass
 
 
 echo
+echo "--- release-order compatibility (#744) ---"
+#
+# These do not replace the selector gate above; they run after it. A slot change
+# is refused outright for a namespace the gate cannot classify, and only a
+# namespace that passed it gets here, where what is under test is the *order*
+# the Services move in.
+
+# The position of a service in the patch log, 1-based, or empty if it never
+# moved. The log is what the cluster was actually asked to do, in order.
+patch_position() {
+  local state="$1" service
+  service="$2"
+  awk -v want="$service" '$1 == want { print NR; exit }' "$state/patch-log"
+}
+
+# A slot change is not instantaneous, so between two patches production is
+# split. This asserts which half is ahead in that window.
+assert_patched_before() {
+  local state="$1" first="$2" second="$3" a b
+  a="$(patch_position "$state" "$first")"
+  b="$(patch_position "$state" "$second")"
+  [[ -n "$a" ]] || { fail "service/$first was never patched"; return; }
+  [[ -n "$b" ]] || { fail "service/$second was never patched"; return; }
+  [[ "$a" -lt "$b" ]] ||
+    fail "service/$first moved at position $a, after service/$second at $b"
+}
+
+# Issue #744: the browser consumes a delivery decision the realtime event
+# carries, so a bundle is compatible with a chat-service of its own release or
+# newer and never with an older one. The cutover therefore has to move every
+# backend before it serves the new bundle — otherwise a page loaded in the
+# window between the two patches speaks a protocol its backend does not know,
+# and does so silently.
+begin "cutover moves every backend before the browser is served the new bundle"
+state="$(new_state blue "blue green")"
+SMOKE="$(evidence green "$RELEASE_A" "$RELEASE_ID_A")" MANIFEST_DIR="$MANIFEST_A" status=0; run "$state" "$SCRIPTS/cutover.sh" --target green || status=$?
+expect_exit 0 "$status"
+assert_all_on "$state" green
+assert_patched_before "$state" chat-service nchat-web
+for backend in auth-service file-service notification-service admin-service search-service media-service document-converter; do
+  assert_patched_before "$state" "$backend" nchat-web
+  assert_patched_before "$state" "$backend" nchat-admin-web
+done
+pass
+
+# The reverse operation reads the same rule the other way: going back to an
+# older release, the browser has to be served the older bundle first, or a new
+# bundle is left talking to a backend that has already gone back.
+begin "rollback serves the older bundle before the backends go back to it"
+state="$(new_state green "blue green")"
+status=0; run "$state" "$SCRIPTS/rollback.sh" --target blue "5xx after cutover" || status=$?
+expect_exit 0 "$status"
+assert_all_on "$state" blue
+assert_patched_before "$state" nchat-web chat-service
+assert_patched_before "$state" nchat-admin-web chat-service
+pass
+
+# Every stable Service must appear in the order, or a slot change would leave
+# production split with nothing reporting it.
+begin "the switch order covers every stable service exactly once"
+state="$(new_state blue "blue green")"
+SMOKE="$(evidence green "$RELEASE_A" "$RELEASE_ID_A")" MANIFEST_DIR="$MANIFEST_A" run "$state" "$SCRIPTS/cutover.sh" --target green || fail "cutover failed"
+assert_equals "services patched" "${#SERVICES[@]}" "$(wc -l <"$state/patch-log")"
+assert_equals "distinct services patched" "${#SERVICES[@]}" "$(awk '{ print $1 }' "$state/patch-log" | sort -u | wc -l)"
+pass
+
+
+echo
 if [ "$FAILURES" -gt 0 ]; then
   echo "production blue/green script tests failed with $FAILURES failure(s)." >&2
   exit 1
