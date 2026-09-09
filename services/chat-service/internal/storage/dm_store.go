@@ -447,6 +447,16 @@ func (s *PGXDMStore) CreateGroupConversation(ctx context.Context, input CreateGr
 	if err != nil {
 		return domain.DMConversation{}, err
 	}
+	// issue #685: a group's creation is a conversation event like a rename or a
+	// departure, in the same transaction as the row it describes. A 1:1 direct
+	// conversation (createDirectConversation, above) never gets one — there is
+	// no roster to narrate for a conversation with no membership concept.
+	if _, err := InsertConversationEvent(ctx, tx, ConversationEventInput{
+		WorkspaceID: conversation.WorkspaceID, DMConversationID: conversation.ID,
+		ActorID: conversation.CreatedBy, Event: domain.ConversationEventCreated,
+	}); err != nil {
+		return domain.DMConversation{}, err
+	}
 	// The conversation was created by the statement above, so every participant
 	// here is new by construction and there is nothing to report separately.
 	if _, err := upsertEligibleDMMembers(ctx, tx, conversation.ID, input.WorkspaceID, input.ParticipantUserIDs); err != nil {

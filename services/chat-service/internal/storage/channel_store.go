@@ -148,7 +148,39 @@ func (s *PGXChannelStore) CreateCategory(ctx context.Context, input CreateCatego
 }
 
 func (s *PGXChannelStore) CreateChannel(ctx context.Context, input CreateChannelInput) (domain.Channel, error) {
-	return createChannel(ctx, s.pool, input)
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return domain.Channel{}, fmt.Errorf("begin create channel: %w", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	ch, err := createChannel(ctx, tx, input)
+	if err != nil {
+		return domain.Channel{}, err
+	}
+	// issue #685: as in CreateChannelForActiveMember, but this path (used only
+	// for a workspace's bootstrap #geral channel — see WorkspaceService) has no
+	// authorization CTE to guarantee an actor, so the event is skipped rather
+	// than attributed to nothing when CreatedBy is unset.
+	if ch.CreatedBy != "" {
+		if _, err := InsertConversationEvent(ctx, tx, ConversationEventInput{
+			WorkspaceID: ch.WorkspaceID, ChannelID: ch.ID,
+			ActorID: ch.CreatedBy, Event: domain.ConversationEventCreated,
+		}); err != nil {
+			return domain.Channel{}, err
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return domain.Channel{}, fmt.Errorf("commit create channel: %w", err)
+	}
+	committed = true
+	return ch, nil
 }
 
 // CreateChannelForActiveMember is the authorization-bearing creation path used
@@ -245,6 +277,17 @@ func (s *PGXChannelStore) CreateChannelForActiveMember(ctx context.Context, inpu
 			return domain.Channel{}, mapped
 		}
 		return domain.Channel{}, fmt.Errorf("create channel for active member: %w", err)
+	}
+
+	// issue #685: creation is a conversation event like a rename or a
+	// departure, in the same transaction as the row it describes. ch.CreatedBy
+	// is always set here — the authorized_context CTE above supplies it, never
+	// the caller — so there is always an actor to attribute it to.
+	if _, err := InsertConversationEvent(ctx, tx, ConversationEventInput{
+		WorkspaceID: ch.WorkspaceID, ChannelID: ch.ID,
+		ActorID: ch.CreatedBy, Event: domain.ConversationEventCreated,
+	}); err != nil {
+		return domain.Channel{}, err
 	}
 
 	if input.EnsureCreatorMemberRole != "" {
