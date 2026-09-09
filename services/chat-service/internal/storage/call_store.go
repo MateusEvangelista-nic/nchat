@@ -265,7 +265,8 @@ func (s *PGXCallStore) CreateResourceCall(ctx context.Context, input CreateResou
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return domain.Call{}, false, "", fmt.Errorf("find active resource call: %w", err)
 	}
-	if errors.Is(err, pgx.ErrNoRows) {
+	justCreated := errors.Is(err, pgx.ErrNoRows)
+	if justCreated {
 		active, err = scanCall(tx.QueryRow(ctx,
 			`INSERT INTO chat.calls (workspace_id, request_id, caller_id, callee_id, target_type, target_id, call_type, status, expires_at, accepted_at) VALUES ($1, $2, $3, NULL, $4, $5, $6, 'active', $7, clock_timestamp()) RETURNING `+callSelectColumns,
 			input.WorkspaceID, input.RequestID, input.CallerID, string(input.TargetType), input.TargetID, string(input.Type), input.ExpiresAt,
@@ -305,10 +306,73 @@ func (s *PGXCallStore) CreateResourceCall(ctx context.Context, input CreateResou
 	if err != nil {
 		return domain.Call{}, false, "", err
 	}
+
+	// call_started only for the admission that actually created the call
+	// (issue #685) — joining an already-active resource call is not a new
+	// call starting, so it gets no second event.
+	if justCreated {
+		if err := insertCallStartedEvent(ctx, tx, input.WorkspaceID, active); err != nil {
+			return domain.Call{}, false, "", err
+		}
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return domain.Call{}, false, "", fmt.Errorf("commit resource call: %w", err)
 	}
 	return active, active.RequestID == input.RequestID && active.CallerID == input.CallerID, participationID, nil
+}
+
+// insertCallEndedEvent records call_ended in the same transaction that ended
+// the resource call (issue #685). Duration is measured from AcceptedAt, which
+// CreateResourceCall's INSERT sets to clock_timestamp() at admission — a
+// resource call has no separate "ringing" phase to exclude, unlike a direct
+// call — to EndedAt, which updateCallStatus's CASE just set to
+// clock_timestamp() for this very transition. A call ended by
+// authorizeCallTransition's idempotent branch never reaches here, so
+// AcceptedAt/EndedAt are always both set.
+func insertCallEndedEvent(ctx context.Context, tx pgx.Tx, workspaceID string, call domain.Call) error {
+	input := ConversationEventInput{
+		WorkspaceID: workspaceID,
+		ActorID:     call.CallerID,
+		Event:       domain.ConversationEventCallEnded,
+		Payload:     domain.ConversationEventPayload{CallID: call.ID, CallType: string(call.Type)},
+	}
+	switch call.TargetType {
+	case domain.CallTargetChannel:
+		input.ChannelID = call.TargetID
+	case domain.CallTargetDM:
+		input.DMConversationID = call.TargetID
+	default:
+		return nil
+	}
+	if call.AcceptedAt != nil && call.EndedAt != nil {
+		input.Payload.CallDurationSeconds = int64(call.EndedAt.Sub(*call.AcceptedAt).Seconds())
+	}
+	_, err := InsertConversationEvent(ctx, tx, input)
+	return err
+}
+
+// insertCallStartedEvent records call_started in the same transaction that
+// created the resource call (issue #685). Only chat.channels and
+// chat.dm_conversations are conversation targets a system event can attach
+// to — a direct call has neither and is never a resource call to begin with,
+// so this is reached only for CallTargetChannel/CallTargetDM.
+func insertCallStartedEvent(ctx context.Context, tx pgx.Tx, workspaceID string, call domain.Call) error {
+	input := ConversationEventInput{
+		WorkspaceID: workspaceID,
+		ActorID:     call.CallerID,
+		Event:       domain.ConversationEventCallStarted,
+		Payload:     domain.ConversationEventPayload{CallID: call.ID, CallType: string(call.Type)},
+	}
+	switch call.TargetType {
+	case domain.CallTargetChannel:
+		input.ChannelID = call.TargetID
+	case domain.CallTargetDM:
+		input.DMConversationID = call.TargetID
+	default:
+		return nil
+	}
+	_, err := InsertConversationEvent(ctx, tx, input)
+	return err
 }
 
 // lockCallKeys acquires a per-transaction advisory lock for each key, always
@@ -952,6 +1016,19 @@ func (s *PGXCallStore) TransitionCall(ctx context.Context, input TransitionCallI
 	updated, err := updateCallStatus(ctx, tx, call.ID, next)
 	if err != nil {
 		return TransitionCallResult{}, err
+	}
+
+	// call_ended only for the resource call's own caller explicitly ending it
+	// here (issue #685) — authorizeCallTransition already requires
+	// call.IsResource() && action == CallActionEnd && actorID == call.CallerID
+	// to reach this non-idempotent branch, so next == CallStatusEnded is the
+	// only outcome that can arrive. The auto-end when the last participant
+	// leaves (LeaveResourceCall) and the timeout sweep (ExpireDueCalls) are
+	// deliberately excluded — neither is "the caller ended the call".
+	if call.IsResource() {
+		if err := insertCallEndedEvent(ctx, tx, input.WorkspaceID, updated); err != nil {
+			return TransitionCallResult{}, err
+		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return TransitionCallResult{}, fmt.Errorf("commit call transition: %w", err)
