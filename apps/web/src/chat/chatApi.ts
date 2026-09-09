@@ -42,6 +42,7 @@ import {
   type MessageSecuritySnapshot,
   type PinnedItem,
   type ConversationEventPayload,
+  type ConversationEventTargetUser,
   type ConversationEventType,
 } from "./chatTypes";
 
@@ -1035,17 +1036,50 @@ function mapConversationEvent(r: MessageResponse): {
   eventType?: ConversationEventType;
   eventPayload?: ConversationEventPayload;
 } {
-  const known: ConversationEventType[] = ["conversation_renamed", "conversation_member_left"];
+  const known: ConversationEventType[] = [
+    "conversation_renamed",
+    "conversation_member_left",
+    "conversation_created",
+    "conversation_archived",
+    "conversation_member_added",
+    "conversation_member_removed",
+    "call_started",
+    "call_ended",
+  ];
   const eventType = known.find((candidate) => candidate === r.event_type);
   if (r.kind !== "system" || !eventType) return {};
   const payload =
     typeof r.event_payload === "object" && r.event_payload
       ? (r.event_payload as Record<string, unknown>)
       : {};
-  const read = (value: unknown) => (typeof value === "string" ? value : undefined);
+  const readString = (value: unknown) => (typeof value === "string" ? value : undefined);
+  const readNumber = (value: unknown) => (typeof value === "number" ? value : undefined);
+  const readCallType = (value: unknown): "audio" | "video" | undefined =>
+    value === "audio" || value === "video" ? value : undefined;
+  const readTargetUsers = (value: unknown): ConversationEventTargetUser[] | undefined => {
+    if (!Array.isArray(value)) return undefined;
+    const users: ConversationEventTargetUser[] = [];
+    for (const entry of value) {
+      if (typeof entry !== "object" || !entry) continue;
+      const userId = readString((entry as Record<string, unknown>)["user_id"]);
+      if (!userId) continue;
+      users.push({
+        userId,
+        displayName: readString((entry as Record<string, unknown>)["display_name"]),
+      });
+    }
+    return users.length > 0 ? users : undefined;
+  };
   return {
     eventType,
-    eventPayload: { oldName: read(payload["old_name"]), newName: read(payload["new_name"]) },
+    eventPayload: {
+      oldName: readString(payload["old_name"]),
+      newName: readString(payload["new_name"]),
+      targetUsers: readTargetUsers(payload["target_users"]),
+      callId: readString(payload["call_id"]),
+      callType: readCallType(payload["call_type"]),
+      callDurationSeconds: readNumber(payload["call_duration_seconds"]),
+    },
   };
 }
 

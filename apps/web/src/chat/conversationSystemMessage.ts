@@ -97,6 +97,15 @@ export function systemMessagePresentation(
   const builders: Record<ConversationEventType, () => string | null> = {
     conversation_renamed: () => renamedText(actor, scope, message.eventPayload),
     conversation_member_left: () => memberLeftText(actor, scope),
+    // TODO(#685): real wording, viewer-aware ("você"), lands with the rest of
+    // the frontend rendering step. Rendering nothing for a known-but-not-yet-
+    // worded event is the same safe fallback an unknown event already gets.
+    conversation_created: () => null,
+    conversation_archived: () => null,
+    conversation_member_added: () => null,
+    conversation_member_removed: () => null,
+    call_started: () => null,
+    call_ended: () => null,
   };
   const text = builders[message.eventType]?.() ?? null;
   return text ? { text } : null;
