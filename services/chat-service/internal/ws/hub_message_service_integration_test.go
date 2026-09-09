@@ -62,6 +62,10 @@ func (s *integDMStore) LeaveGroupConversation(context.Context, string, string, s
 	return storage.LeaveConversationResult{}, nil
 }
 
+func (s *integDMStore) RemoveGroupParticipant(context.Context, string, string, string, string) (storage.RemoveGroupParticipantResult, error) {
+	return storage.RemoveGroupParticipantResult{}, nil
+}
+
 func (s *integChannelStore) LeaveChannelSelf(context.Context, string, string, string) (storage.LeaveConversationResult, error) {
 	return storage.LeaveConversationResult{}, nil
 }

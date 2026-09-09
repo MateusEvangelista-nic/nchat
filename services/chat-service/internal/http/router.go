@@ -286,6 +286,9 @@ func NewRouter(cfg config.Config, logger *slog.Logger, state ReadinessState, val
 		// participation is re-derived inside each write transaction.
 		mux.Handle("PATCH "+RouteDMConversation, authMiddleware(http.HandlerFunc(directMessages.RenameGroup)))
 		mux.Handle("DELETE "+RouteDMMembership, authMiddleware(http.HandlerFunc(directMessages.LeaveGroup)))
+		// Admin removal (issue #685), the counterpart to self-leave above; its own
+		// budget inside the handler, shared with rename and leave.
+		mux.Handle("DELETE "+RouteDMParticipant, authMiddleware(http.HandlerFunc(directMessages.RemoveParticipant)))
 		mux.Handle("GET "+RouteDMMemberCandidates, authMiddleware(http.HandlerFunc(directMessages.ParticipantCandidates)))
 		// Group details (issue #441) is a read, so it shares the listing budget
 		// rather than the write one: the panel refetches on every conversation

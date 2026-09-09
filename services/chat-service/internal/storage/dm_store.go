@@ -67,6 +67,14 @@ type DMStore interface {
 	// records the departure. Self-leave only — there is no target user
 	// parameter (issue #527).
 	LeaveGroupConversation(ctx context.Context, workspaceID, conversationID, callerID string) (LeaveConversationResult, error)
+	// RemoveGroupParticipant removes targetUserID from a group on callerID's
+	// behalf and records conversation_member_removed in the same transaction
+	// (issue #685). Only the group's creator may remove another participant —
+	// a group has no admin/moderator role to consult, so authority is narrower
+	// than a channel's — and removing oneself is LeaveGroupConversation's job,
+	// not this one. Idempotent: a target who does not currently participate
+	// yields a zero-value result and no error.
+	RemoveGroupParticipant(ctx context.Context, workspaceID, conversationID, callerID, targetUserID string) (RemoveGroupParticipantResult, error)
 	// ListParticipantProfiles returns up to limit active participants of
 	// conversationID in workspaceID plus the total number of active
 	// participants, in one round trip. The caller's access to the conversation

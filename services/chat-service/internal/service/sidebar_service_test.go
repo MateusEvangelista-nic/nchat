@@ -189,6 +189,10 @@ func (f *sidebarFakeDMStore) LeaveGroupConversation(context.Context, string, str
 	return storage.LeaveConversationResult{}, nil
 }
 
+func (f *sidebarFakeDMStore) RemoveGroupParticipant(context.Context, string, string, string, string) (storage.RemoveGroupParticipantResult, error) {
+	return storage.RemoveGroupParticipantResult{}, nil
+}
+
 func (f *sidebarFakeDMStore) CreateDirectConversation(_ context.Context, _ storage.CreateDirectConversationInput) (storage.CreateDirectConversationResult, error) {
 	return storage.CreateDirectConversationResult{}, nil
 }
