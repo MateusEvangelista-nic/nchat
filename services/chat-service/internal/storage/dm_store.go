@@ -623,6 +623,23 @@ func (s *PGXDMStore) AddGroupParticipants(
 		return AddMembersResult{}, err
 	}
 
+	// issue #685: one conversation_member_added event per batch, mirroring
+	// AddChannelMembers — never emitted when addedUserIDs is empty (a batch
+	// that was entirely already-active participants changed nothing).
+	if len(addedUserIDs) > 0 {
+		targets, err := resolveConversationEventTargetUsers(ctx, tx, addedUserIDs)
+		if err != nil {
+			return AddMembersResult{}, err
+		}
+		if _, err := InsertConversationEvent(ctx, tx, ConversationEventInput{
+			WorkspaceID: input.WorkspaceID, DMConversationID: conversationID, ActorID: input.CallerID,
+			Event:   domain.ConversationEventMemberAdded,
+			Payload: domain.ConversationEventPayload{TargetUsers: targets},
+		}); err != nil {
+			return AddMembersResult{}, err
+		}
+	}
+
 	total, err := countActiveDMParticipants(ctx, tx, conversationID)
 	if err != nil {
 		return AddMembersResult{}, err

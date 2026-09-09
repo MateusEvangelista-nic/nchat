@@ -594,6 +594,24 @@ func (s *PGXMemberStore) AddChannelMembers(
 		return AddMembersResult{}, domain.ErrForbidden
 	}
 
+	// issue #685: one conversation_member_added event per batch, never one per
+	// member — inserted is the RETURNING of the statement above, so a batch
+	// that was entirely "already a member" (inserted == 0) writes no event at
+	// all, matching AddedUserIDs' own doc comment about what actually changed.
+	if len(addedUserIDs) > 0 {
+		targets, err := resolveConversationEventTargetUsers(ctx, tx, addedUserIDs)
+		if err != nil {
+			return AddMembersResult{}, err
+		}
+		if _, err := InsertConversationEvent(ctx, tx, ConversationEventInput{
+			WorkspaceID: workspaceID, ChannelID: channelID, ActorID: callerID,
+			Event:   domain.ConversationEventMemberAdded,
+			Payload: domain.ConversationEventPayload{TargetUsers: targets},
+		}); err != nil {
+			return AddMembersResult{}, err
+		}
+	}
+
 	var total int
 	if err := tx.QueryRow(ctx, `
 		SELECT count(*)
