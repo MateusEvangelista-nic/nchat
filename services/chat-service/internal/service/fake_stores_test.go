@@ -584,6 +584,20 @@ func (f *fakeMemberStore) RemoveChannelMember(_ context.Context, _, channelID, u
 	return nil
 }
 
+func (f *fakeMemberStore) RemoveChannelMemberByAdmin(_ context.Context, _, channelID, actorID, userID string) (domain.Message, error) {
+	if f.removeCMErr != nil {
+		return domain.Message{}, f.removeCMErr
+	}
+	if _, ok := f.channelMembers[cmKey(channelID, userID)]; !ok {
+		return domain.Message{}, nil
+	}
+	delete(f.channelMembers, cmKey(channelID, userID))
+	return domain.Message{
+		ID: "event-member-removed", ChannelID: channelID, SenderID: actorID,
+		Kind: domain.MessageKindSystem, EventType: string(domain.ConversationEventMemberRemoved),
+	}, nil
+}
+
 func (f *fakeMemberStore) EnsureGeneralMembership(_ context.Context, workspaceID, userID string) error {
 	if err := f.requireActiveWorkspace(workspaceID); err != nil {
 		return err

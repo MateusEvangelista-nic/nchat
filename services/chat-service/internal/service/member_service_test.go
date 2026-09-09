@@ -510,7 +510,7 @@ func TestMemberService_RemoveMemberFromChannel_OwnerCanRemove(t *testing.T) {
 	}
 	ms.channelMembers[cmKey("ch-1", "user-1")] = domain.ChannelMember{ChannelID: "ch-1", UserID: "user-1", Role: domain.ChannelRoleMember}
 	svc := service.NewMemberService(ms, &fakeChannelStore{channel: ch}, &fakeWorkspaceStore{workspace: ws})
-	if err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "owner-1", "user-1"); err != nil {
+	if _, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "owner-1", "user-1"); err != nil {
 		t.Fatalf("owner should be able to remove member: %v", err)
 	}
 	if _, ok := ms.channelMembers[cmKey("ch-1", "user-1")]; ok {
@@ -527,7 +527,7 @@ func TestMemberService_RemoveMemberFromChannel_AdminCanRemove(t *testing.T) {
 	}
 	ms.channelMembers[cmKey("ch-1", "user-1")] = domain.ChannelMember{ChannelID: "ch-1", UserID: "user-1", Role: domain.ChannelRoleMember}
 	svc := service.NewMemberService(ms, &fakeChannelStore{channel: ch}, &fakeWorkspaceStore{workspace: ws})
-	if err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "admin-1", "user-1"); err != nil {
+	if _, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "admin-1", "user-1"); err != nil {
 		t.Fatalf("admin should be able to remove member: %v", err)
 	}
 	if _, ok := ms.channelMembers[cmKey("ch-1", "user-1")]; ok {
@@ -543,7 +543,7 @@ func TestMemberService_RemoveMemberFromChannel_MemberRoleDenied(t *testing.T) {
 		WorkspaceID: "ws-1", UserID: "member-1", Role: domain.WorkspaceRoleMember, Status: domain.MemberStatusActive,
 	}
 	svc := service.NewMemberService(ms, &fakeChannelStore{channel: ch}, &fakeWorkspaceStore{workspace: ws})
-	if err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "member-1", "user-2"); !errors.Is(err, domain.ErrForbidden) {
+	if _, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "member-1", "user-2"); !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("member role should get ErrForbidden, got: %v", err)
 	}
 }
@@ -556,7 +556,7 @@ func TestMemberService_RemoveMemberFromChannel_GuestRoleDenied(t *testing.T) {
 		WorkspaceID: "ws-1", UserID: "guest-1", Role: domain.WorkspaceRoleGuest, Status: domain.MemberStatusActive,
 	}
 	svc := service.NewMemberService(ms, &fakeChannelStore{channel: ch}, &fakeWorkspaceStore{workspace: ws})
-	if err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "guest-1", "user-2"); !errors.Is(err, domain.ErrForbidden) {
+	if _, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "guest-1", "user-2"); !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("guest role should get ErrForbidden, got: %v", err)
 	}
 }
@@ -580,7 +580,7 @@ func TestMemberService_RemoveMemberFromChannel_FollowsCanManageChannelMembers(t 
 			ms.channelMembers[cmKey("ch-1", "user-1")] = domain.ChannelMember{ChannelID: "ch-1", UserID: "user-1", Role: domain.ChannelRoleMember}
 			svc := service.NewMemberService(ms, &fakeChannelStore{channel: ch}, &fakeWorkspaceStore{workspace: ws})
 
-			err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "caller-1", "user-1")
+			_, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "caller-1", "user-1")
 			allowed := domain.CanManageChannelMembers(&domain.WorkspaceMember{Role: role, Status: domain.MemberStatusActive})
 
 			if allowed && err != nil {
@@ -598,6 +598,46 @@ func TestMemberService_RemoveMemberFromChannel_FollowsCanManageChannelMembers(t 
 	}
 }
 
+// The conversation_member_removed event the storage layer wrote comes back
+// through the service unchanged, so the HTTP handler can publish it — the
+// service makes no decision about the event, only the authorization above it.
+func TestMemberService_RemoveMemberFromChannel_ReturnsTheWrittenEvent(t *testing.T) {
+	ms := newFakeMemberStore()
+	ch := domain.Channel{ID: "ch-1", WorkspaceID: "ws-1", Type: domain.ChannelTypePublic, Status: domain.ChannelStatusActive}
+	ws := domain.Workspace{ID: "ws-1", Status: domain.WorkspaceStatusActive}
+	ms.workspaceMembers[wmKey("ws-1", "owner-1")] = domain.WorkspaceMember{
+		WorkspaceID: "ws-1", UserID: "owner-1", Role: domain.WorkspaceRoleOwner, Status: domain.MemberStatusActive,
+	}
+	ms.channelMembers[cmKey("ch-1", "user-1")] = domain.ChannelMember{ChannelID: "ch-1", UserID: "user-1", Role: domain.ChannelRoleMember}
+	svc := service.NewMemberService(ms, &fakeChannelStore{channel: ch}, &fakeWorkspaceStore{workspace: ws})
+	event, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "owner-1", "user-1")
+	if err != nil {
+		t.Fatalf("RemoveMemberFromChannel: %v", err)
+	}
+	if event.ID == "" || event.EventType != string(domain.ConversationEventMemberRemoved) {
+		t.Fatalf("event = %+v, want the conversation_member_removed event", event)
+	}
+}
+
+// Removing a user who is not a member changes nothing, so there is no event
+// to publish — the zero value, not a fabricated one.
+func TestMemberService_RemoveMemberFromChannel_NotAMember_ReturnsNoEvent(t *testing.T) {
+	ms := newFakeMemberStore()
+	ch := domain.Channel{ID: "ch-1", WorkspaceID: "ws-1", Type: domain.ChannelTypePublic, Status: domain.ChannelStatusActive}
+	ws := domain.Workspace{ID: "ws-1", Status: domain.WorkspaceStatusActive}
+	ms.workspaceMembers[wmKey("ws-1", "owner-1")] = domain.WorkspaceMember{
+		WorkspaceID: "ws-1", UserID: "owner-1", Role: domain.WorkspaceRoleOwner, Status: domain.MemberStatusActive,
+	}
+	svc := service.NewMemberService(ms, &fakeChannelStore{channel: ch}, &fakeWorkspaceStore{workspace: ws})
+	event, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "owner-1", "user-99")
+	if err != nil {
+		t.Fatalf("RemoveMemberFromChannel: %v", err)
+	}
+	if event.ID != "" {
+		t.Fatalf("event = %+v, want zero value when nobody was removed", event)
+	}
+}
+
 func TestMemberService_RemoveMemberFromChannel_GeneralChannel_Denied(t *testing.T) {
 	ms := newFakeMemberStore()
 	ch := domain.Channel{ID: "ch-geral", WorkspaceID: "ws-1", Type: domain.ChannelTypePublic, Status: domain.ChannelStatusActive, IsGeneral: true}
@@ -606,7 +646,7 @@ func TestMemberService_RemoveMemberFromChannel_GeneralChannel_Denied(t *testing.
 		WorkspaceID: "ws-1", UserID: "owner-1", Role: domain.WorkspaceRoleOwner, Status: domain.MemberStatusActive,
 	}
 	svc := service.NewMemberService(ms, &fakeChannelStore{channel: ch}, &fakeWorkspaceStore{workspace: ws})
-	if err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-geral", "owner-1", "user-1"); !errors.Is(err, domain.ErrForbidden) {
+	if _, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-geral", "owner-1", "user-1"); !errors.Is(err, domain.ErrForbidden) {
 		t.Fatalf("removing from #geral should return ErrForbidden, got: %v", err)
 	}
 }

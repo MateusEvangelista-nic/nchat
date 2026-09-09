@@ -63,6 +63,16 @@ type MemberStore interface {
 	// workspaceID. Returns ErrCannotLeaveGeneralChannel if the channel has is_general=true.
 	// Returns nil when the membership does not exist (idempotent).
 	RemoveChannelMember(ctx context.Context, workspaceID, channelID, userID string) error
+	// RemoveChannelMemberByAdmin deletes targetUserID's channel membership on
+	// actorID's behalf and, unlike RemoveChannelMember, records a
+	// conversation_member_removed event in the same transaction (issue #685),
+	// returned so the caller can publish it — its zero value means "removed
+	// nothing, no event", the same convention UpdateChannelResult.Event uses.
+	// It is a separate function rather than an actorID parameter bolted onto
+	// RemoveChannelMember so the self-leave path — already covered and relied
+	// upon elsewhere — stays untouched. Returns ErrCannotLeaveGeneralChannel for
+	// #geral.
+	RemoveChannelMemberByAdmin(ctx context.Context, workspaceID, channelID, actorID, targetUserID string) (domain.Message, error)
 	EnsureGeneralMembership(ctx context.Context, workspaceID, userID string) error
 	SyncGeneralMemberships(ctx context.Context, workspaceID string) (int64, error)
 }
@@ -1099,4 +1109,70 @@ func (s *PGXMemberStore) RemoveChannelMember(ctx context.Context, workspaceID, c
 	}
 	committed = true
 	return nil
+}
+
+// RemoveChannelMemberByAdmin deletes a channel membership on actorID's behalf
+// and records the conversation_member_removed event in the same transaction
+// (issue #685). See the interface doc for why this does not share
+// RemoveChannelMember's body.
+func (s *PGXMemberStore) RemoveChannelMemberByAdmin(ctx context.Context, workspaceID, channelID, actorID, targetUserID string) (domain.Message, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return domain.Message{}, fmt.Errorf("begin remove channel member by admin: %w", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	var isGeneral bool
+	err = tx.QueryRow(ctx, `
+		SELECT is_general FROM chat.channels
+		WHERE id = $1 AND workspace_id = $2
+		FOR UPDATE`,
+		channelID, workspaceID,
+	).Scan(&isGeneral)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Message{}, nil
+		}
+		return domain.Message{}, fmt.Errorf("check channel for remove by admin: %w", err)
+	}
+	if isGeneral {
+		return domain.Message{}, domain.ErrCannotLeaveGeneralChannel
+	}
+
+	tag, err := tx.Exec(ctx, `
+		DELETE FROM chat.channel_members
+		WHERE channel_id = $1 AND user_id = $2`,
+		channelID, targetUserID,
+	)
+	if err != nil {
+		return domain.Message{}, fmt.Errorf("remove channel member by admin: %w", err)
+	}
+	var event domain.Message
+	if tag.RowsAffected() > 0 {
+		targets, err := resolveConversationEventTargetUsers(ctx, tx, []string{targetUserID})
+		if err != nil {
+			return domain.Message{}, fmt.Errorf("resolve removed member: %w", err)
+		}
+		event, err = InsertConversationEvent(ctx, tx, ConversationEventInput{
+			WorkspaceID: workspaceID,
+			ChannelID:   channelID,
+			ActorID:     actorID,
+			Event:       domain.ConversationEventMemberRemoved,
+			Payload:     domain.ConversationEventPayload{TargetUsers: targets},
+		})
+		if err != nil {
+			return domain.Message{}, fmt.Errorf("insert member removed event: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return domain.Message{}, fmt.Errorf("commit remove channel member by admin: %w", err)
+	}
+	committed = true
+	return event, nil
 }

@@ -51,6 +51,10 @@ const (
 	// a group is a chat.dm_conversations row and not a channel. Neither carries a
 	// workspace segment, for the same reason none of the others does.
 	RouteChannelMembers = "/api/chat/channels/{channelID}/members"
+	// Issue #685 admin removal, distinct from the self-leave DELETE above: this
+	// one names the target in the path and requires management authority, while
+	// RouteChannelMembership always acts on the caller.
+	RouteChannelMember = "/api/chat/channels/{channelID}/members/{userID}"
 	// Issue #398 contextual candidate search. Scoped to the target conversation
 	// because "who can still be added" depends on who is already in it, and the
 	// panel's capped preview is not a membership list. Same prefix convention as

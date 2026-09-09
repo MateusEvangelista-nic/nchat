@@ -75,6 +75,10 @@ func (f *sidebarFakeMemberStore) ListChannelMemberProfilesByIDs(_ context.Contex
 func (f *sidebarFakeMemberStore) SearchDMCandidates(_ context.Context, _, _, _ string, _ int) ([]domain.DMCandidate, error) {
 	return nil, nil
 }
+func (f *sidebarFakeMemberStore) RemoveChannelMemberByAdmin(_ context.Context, _, _, _, _ string) (domain.Message, error) {
+	return domain.Message{}, nil
+}
+
 func (f *sidebarFakeMemberStore) RemoveChannelMember(_ context.Context, _, _, _ string) error {
 	return nil
 }

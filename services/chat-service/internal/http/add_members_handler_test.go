@@ -18,14 +18,21 @@ import (
 // ── Fakes ───────────────────────────────────────────────────────────────────
 
 type fakeMemberManager struct {
-	candidates         []domain.DMCandidate
-	candidatesErr      error
-	candidateCalls     int
-	lastCandidateInput service.SearchChannelMemberCandidatesInput
-	result             storage.AddMembersResult
-	err                error
-	lastInput          service.AddChannelMembersInput
-	calls              int
+	candidates            []domain.DMCandidate
+	candidatesErr         error
+	candidateCalls        int
+	lastCandidateInput    service.SearchChannelMemberCandidatesInput
+	result                storage.AddMembersResult
+	err                   error
+	lastInput             service.AddChannelMembersInput
+	calls                 int
+	removeResult          domain.Message
+	removeErr             error
+	lastRemoveWorkspaceID string
+	lastRemoveChannelID   string
+	lastRemoveCallerID    string
+	lastRemoveTargetID    string
+	removeCalls           int
 }
 
 func (f *fakeMemberManager) SearchChannelMemberCandidates(
@@ -42,6 +49,17 @@ func (f *fakeMemberManager) AddChannelMembers(
 	f.calls++
 	f.lastInput = input
 	return f.result, f.err
+}
+
+func (f *fakeMemberManager) RemoveMemberFromChannel(
+	_ context.Context, workspaceID, channelID, callerID, targetUserID string,
+) (domain.Message, error) {
+	f.removeCalls++
+	f.lastRemoveWorkspaceID = workspaceID
+	f.lastRemoveChannelID = channelID
+	f.lastRemoveCallerID = callerID
+	f.lastRemoveTargetID = targetUserID
+	return f.removeResult, f.removeErr
 }
 
 // recordingBroadcaster captures what, if anything, was published. The assertions
@@ -706,6 +724,111 @@ func TestAddMembers_DoesNotSignalOnFailure(t *testing.T) {
 
 			if len(broadcast.available) != 0 {
 				t.Fatalf("a failed write signalled %d user(s)", len(broadcast.available))
+			}
+		})
+	}
+}
+
+// ── RemoveMember (issue #685) ────────────────────────────────────────────────
+
+const removeMemberTargetID = "55555555-5555-4555-8555-555555555555"
+
+func removeMemberRequest() *http.Request {
+	r := requestWithUser(
+		http.MethodDelete, "/api/chat/channels/"+testChannelID+"/members/"+removeMemberTargetID, nil,
+	)
+	r.SetPathValue("channelID", testChannelID)
+	r.SetPathValue("userID", removeMemberTargetID)
+	r.Header.Set("Content-Type", "application/json")
+	return r
+}
+
+func serveRemoveMember(handler *httpapi.ChannelHandler, r *http.Request) *httptest.ResponseRecorder {
+	rec := httptest.NewRecorder()
+	handler.RemoveMember(rec, r)
+	return rec
+}
+
+// A committed removal answers 204 and publishes the event the service
+// returned, so a live viewer's timeline gains the entry without a reload.
+func TestRemoveMember_PublishesTheCommittedEvent(t *testing.T) {
+	members := &fakeMemberManager{
+		removeResult: domain.Message{ID: "event-1", EventType: string(domain.ConversationEventMemberRemoved)},
+	}
+	broadcast := &recordingBroadcaster{}
+
+	rec := serveRemoveMember(addMembersHandler(members, broadcast, nil), removeMemberRequest())
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204: %s", rec.Code, rec.Body.String())
+	}
+	if len(broadcast.conversationEvents) != 1 {
+		t.Fatalf("conversationEvents = %v, want exactly one publish", broadcast.conversationEvents)
+	}
+	got := broadcast.conversationEvents[0]
+	if got[1] != "channel" || got[2] != testChannelID || got[3] != "event-1" {
+		t.Fatalf("published event = %v, want channel/%s/event-1", got, testChannelID)
+	}
+}
+
+// The actor, workspace and target all come from the session and the path —
+// never anything the body could claim — and there is no body to claim it with.
+func TestRemoveMember_DerivesActorWorkspaceAndTargetServerSide(t *testing.T) {
+	members := &fakeMemberManager{}
+
+	serveRemoveMember(addMembersHandler(members, &recordingBroadcaster{}, nil), removeMemberRequest())
+
+	if members.lastRemoveCallerID != msgTestUserID {
+		t.Fatalf("callerID = %q, want the authenticated user %q", members.lastRemoveCallerID, msgTestUserID)
+	}
+	if members.lastRemoveWorkspaceID != testWorkspaceID {
+		t.Fatalf("workspaceID = %q, want the resolved workspace %q", members.lastRemoveWorkspaceID, testWorkspaceID)
+	}
+	if members.lastRemoveChannelID != testChannelID {
+		t.Fatalf("channelID = %q, want the path value", members.lastRemoveChannelID)
+	}
+	if members.lastRemoveTargetID != removeMemberTargetID {
+		t.Fatalf("targetUserID = %q, want the path value", members.lastRemoveTargetID)
+	}
+}
+
+// A no-op removal (target was never a member) commits nothing new to
+// announce: 204, but no publish.
+func TestRemoveMember_NoEvent_DoesNotPublish(t *testing.T) {
+	members := &fakeMemberManager{removeResult: domain.Message{}}
+	broadcast := &recordingBroadcaster{}
+
+	rec := serveRemoveMember(addMembersHandler(members, broadcast, nil), removeMemberRequest())
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204: %s", rec.Code, rec.Body.String())
+	}
+	if len(broadcast.conversationEvents) != 0 {
+		t.Fatalf("a no-op removal published %d event(s)", len(broadcast.conversationEvents))
+	}
+}
+
+// A refusal from the service never publishes — a rolled-back or denied
+// removal announces nothing.
+func TestRemoveMember_DoesNotPublishOnFailure(t *testing.T) {
+	for name, err := range map[string]error{
+		"forbidden": domain.ErrForbidden,
+		"not found": domain.ErrNotFound,
+		"internal":  errors.New("rollback"),
+	} {
+		t.Run(name, func(t *testing.T) {
+			broadcast := &recordingBroadcaster{}
+
+			rec := serveRemoveMember(
+				addMembersHandler(&fakeMemberManager{removeErr: err}, broadcast, nil),
+				removeMemberRequest(),
+			)
+
+			if rec.Code == http.StatusNoContent {
+				t.Fatalf("a refused removal answered 204")
+			}
+			if len(broadcast.conversationEvents) != 0 {
+				t.Fatalf("a refused removal published %d event(s)", len(broadcast.conversationEvents))
 			}
 		})
 	}

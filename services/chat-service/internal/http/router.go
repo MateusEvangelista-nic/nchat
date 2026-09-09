@@ -255,6 +255,9 @@ func NewRouter(cfg config.Config, logger *slog.Logger, state ReadinessState, val
 			// Contextual candidate search (issue #398): its own budget inside the
 			// handler, shared with the workspace-wide search.
 			mux.Handle("GET "+RouteChannelMemberCandidates, authMiddleware(http.HandlerFunc(channels.MemberCandidates)))
+			// Admin removal (issue #685), the counterpart to self-leave above; its own
+			// budget inside the handler, like add-members.
+			mux.Handle("DELETE "+RouteChannelMember, authMiddleware(http.HandlerFunc(channels.RemoveMember)))
 		}
 	}
 	// RF-17 channel categories. Registered only when wired, like the channel and
