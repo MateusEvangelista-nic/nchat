@@ -176,6 +176,41 @@ func TestDownloadTranscodesVoiceWebMToRealMP3(t *testing.T) {
 	}
 }
 
+// TestDownloadTranscodesVoiceMP4ToRealMP3 is TestDownloadTranscodesVoiceWebMToRealMP3's
+// counterpart for Safari, whose MediaRecorder wraps its audio-only output in
+// an MP4 container instead of WebM (see useVoiceRecorder.ts's CANDIDATE_MIME_TYPES).
+func TestDownloadTranscodesVoiceMP4ToRealMP3(t *testing.T) {
+	f := newFixture(t)
+	transcoder := &fakeAudioTranscoder{mp3: []byte(fakeMP3Payload)}
+	f.service.SetAudioTranscoder(transcoder)
+	// A minimal ftyp box: net/http.DetectContentType's MP4 signature only
+	// checks for "ftyp" at offset 4, so this is enough to sniff as video/mp4
+	// without needing a real, fully-formed container.
+	payload := append(append([]byte{0, 0, 0, 0x18}, []byte("ftypisom")...), []byte{0, 0, 2, 0}...)
+	payload = append(payload, []byte("isommp41")...)
+	record := uploadWithPurpose(
+		t, f, payload, "voice-message.mp4", "audio/mp4",
+		service.UploadPurposeVoiceMessage, domain.StatusClean,
+	)
+	f.store.authorized = record
+	if record.AudioKind != domain.AudioKindVoice {
+		t.Fatalf("test setup: expected the upload to be tagged voice, got %q", record.AudioKind)
+	}
+
+	download, err := f.service.Download(context.Background(), downloadInput(record.ID))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer func() { _ = download.Content.Close() }()
+
+	if download.ContentType != "audio/mpeg" || !strings.HasSuffix(download.Filename, ".mp3") {
+		t.Fatalf("content type/filename = %q/%q", download.ContentType, download.Filename)
+	}
+	if len(transcoder.calls) != 1 || transcoder.calls[0] != converterapi.AudioFormatMP4 {
+		t.Fatalf("transcoder calls = %v, want exactly one call with AudioFormatMP4", transcoder.calls)
+	}
+}
+
 // TestDownloadNeverTranscodesAnOrdinaryWebMVideo is the regression guard on
 // the other side of the same detection gap: a real video upload sniffs
 // identically to a voice message (video/webm), and the only thing telling

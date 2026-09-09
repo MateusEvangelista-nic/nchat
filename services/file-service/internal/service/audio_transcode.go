@@ -138,6 +138,6 @@ type deleteOnCloseFile struct{ *os.File }
 
 func (f deleteOnCloseFile) Close() error {
 	closeErr := f.File.Close()
-	_ = os.Remove(f.File.Name())
+	_ = os.Remove(f.Name())
 	return closeErr
 }
