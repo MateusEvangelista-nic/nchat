@@ -93,6 +93,10 @@ func TestClientConvertAudioClassifiesResponses(t *testing.T) {
 		want   error
 	}{
 		{"success", http.StatusOK, []byte(validMP3Fixture), nil},
+		// An ID3v2-tagged MP3 (what a real browser upload of an .mp3 file
+		// usually looks like) rather than a bare frame sync word — the other
+		// half of validMP3Response's check.
+		{"success with ID3 tag", http.StatusOK, append([]byte("ID3"), []byte("\x04\x00\x00\x00\x00\x00\x00payload")...), nil},
 		{"blocked", http.StatusUnprocessableEntity, []byte(`{"code":"blocked"}`), ErrBlocked},
 		{"invalid", http.StatusUnprocessableEntity, []byte(`{"code":"invalid_audio"}`), ErrPermanent},
 		{"timeout", http.StatusGatewayTimeout, []byte(`{"code":"timeout"}`), ErrTransient},
@@ -119,6 +123,79 @@ func TestClientConvertAudioClassifiesResponses(t *testing.T) {
 				t.Fatalf("mp3 = %q", mp3)
 			}
 		})
+	}
+}
+
+// TestClientConvertAudioClassifiesUnknownErrorCodes mirrors
+// TestClientConvertClassifiesUnknownErrorCodes (Convert's own test): a code
+// this client does not recognise still gets a class, from the status alone.
+func TestClientConvertAudioClassifiesUnknownErrorCodes(t *testing.T) {
+	tests := []struct {
+		name   string
+		status int
+		want   error
+	}{
+		{"unknown 5xx", http.StatusBadGateway, ErrTransient},
+		{"unknown 4xx", http.StatusTeapot, ErrPermanent},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(test.status)
+				_, _ = w.Write([]byte(`{"code":"something_unrecognized"}`))
+			}))
+			defer server.Close()
+			client, err := NewClient(server.URL, time.Second)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := client.ConvertAudio(context.Background(), AudioFormatOgg, bytes.NewReader([]byte("source"))); !errors.Is(err, test.want) {
+				t.Fatalf("error = %v, want class %v", err, test.want)
+			}
+		})
+	}
+}
+
+// TestClientConvertAudioIsRedirectRefused mirrors
+// TestClientConvertsWithoutFollowingRedirects: the sidecar is never expected
+// to redirect, and following one anyway would risk sending audio bytes
+// somewhere this client never verified.
+func TestClientConvertAudioIsRedirectRefused(t *testing.T) {
+	redirected := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/elsewhere" {
+			redirected = true
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if r.Header.Get("X-Audio-Format") != "ogg" {
+			t.Errorf("format header = %q", r.Header.Get("X-Audio-Format"))
+		}
+		http.Redirect(w, r, "/elsewhere", http.StatusTemporaryRedirect)
+	}))
+	defer server.Close()
+	client, err := NewClient(server.URL, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.ConvertAudio(context.Background(), AudioFormatOgg, bytes.NewReader([]byte("source")))
+	if !errors.Is(err, ErrTransient) || redirected {
+		t.Fatalf("error/redirected = %v/%v", err, redirected)
+	}
+}
+
+// TestClientConvertAudioClassifiesATransportFailureAsTransient is distinct
+// from the canceled-context case below: here the request never even reaches
+// a listener (nothing is bound on this port), so ctx.Err() is nil and the
+// failure must be classified from the transport error alone.
+func TestClientConvertAudioClassifiesATransportFailureAsTransient(t *testing.T) {
+	client, err := NewClient("http://127.0.0.1:1", time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.ConvertAudio(context.Background(), AudioFormatOgg, bytes.NewReader([]byte("source")))
+	if !errors.Is(err, ErrTransient) {
+		t.Fatalf("error = %v, want ErrTransient", err)
 	}
 }
 

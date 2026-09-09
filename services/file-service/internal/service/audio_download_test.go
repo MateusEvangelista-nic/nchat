@@ -12,6 +12,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -282,6 +283,27 @@ func TestDownloadPassesThroughAlreadyMP3AudioWithoutTranscoding(t *testing.T) {
 	}
 }
 
+// TestDownloadPassThroughAlreadyMP3PropagatesStorageFailure covers Download's
+// other storage-open call site — the isMP3Already branch, which never reaches
+// downloadTranscodedAudio at all. A decrypt/storage failure there must
+// surface exactly like it does for every other attachment type, not be
+// swallowed or misreported as a transcode failure.
+func TestDownloadPassThroughAlreadyMP3PropagatesStorageFailure(t *testing.T) {
+	f := newFixture(t)
+	payload := append([]byte("ID3"), bytes.Repeat([]byte("x"), 40)...)
+	record := uploadWithPurpose(t, f, payload, "song.mp3", "audio/mpeg", "", domain.StatusClean)
+	f.store.authorized = record
+	f.objects.openErr = domain.ErrUnavailable
+
+	_, err := f.service.Download(context.Background(), downloadInput(record.ID))
+	if !errors.Is(err, domain.ErrUnavailable) {
+		t.Fatalf("error = %v, want ErrUnavailable", err)
+	}
+	if errors.Is(err, domain.ErrAudioTranscodeFailed) {
+		t.Fatal("already-MP3 content never transcodes, so its storage failure is not a transcode failure")
+	}
+}
+
 // TestDownloadFailsWhenTranscodingFailsRatherThanServingTheOriginal is the
 // core safety property: a converter failure must never fall back to serving
 // the stored container labeled as MP3.
@@ -343,5 +365,104 @@ func TestDownloadRejectsAudioOverTheTranscodeSizeCapWithoutReadingIt(t *testing.
 	}
 	if len(transcoder.calls) != 0 {
 		t.Fatalf("transcoder calls = %v, want none for an oversized attachment", transcoder.calls)
+	}
+}
+
+// TestDownloadTranscodePropagatesAStorageFailureWithoutCallingTheTranscoder
+// covers the case downloadTranscodedAudio's own storage open sits in front
+// of: a decrypt/storage failure must surface as-is, and the converter must
+// never be asked to transcode content that was never actually read.
+func TestDownloadTranscodePropagatesAStorageFailureWithoutCallingTheTranscoder(t *testing.T) {
+	f := newFixture(t)
+	transcoder := &fakeAudioTranscoder{mp3: []byte(fakeMP3Payload)}
+	f.service.SetAudioTranscoder(transcoder)
+	payload := append([]byte("OggS"), make([]byte, 40)...)
+	record := uploadWithPurpose(t, f, payload, "recording.ogg", "audio/ogg", "", domain.StatusClean)
+	f.store.authorized = record
+	f.objects.openErr = domain.ErrUnavailable
+
+	_, err := f.service.Download(context.Background(), downloadInput(record.ID))
+	if !errors.Is(err, domain.ErrUnavailable) {
+		t.Fatalf("error = %v, want ErrUnavailable", err)
+	}
+	if errors.Is(err, domain.ErrAudioTranscodeFailed) {
+		t.Fatal("a storage failure is not a transcode failure and must not be reported as one")
+	}
+	if len(transcoder.calls) != 0 {
+		t.Fatalf("transcoder calls = %v, want none: content that could not be opened was never handed to it", transcoder.calls)
+	}
+}
+
+// TestDownloadTranscodedFilenameFallsBackWhenTheStoredNameIsEmpty exercises
+// withMP3Extension's defensive branch for a record whose filename strips to
+// nothing — no real upload can produce this (NormalizeFilename never accepts
+// an empty name), but the extension-swap logic must still not panic or
+// produce a bare ".mp3" leading dot on a metadata row from before that
+// invariant existed.
+func TestDownloadTranscodedFilenameFallsBackWhenTheStoredNameIsEmpty(t *testing.T) {
+	f := newFixture(t)
+	transcoder := &fakeAudioTranscoder{mp3: []byte(fakeMP3Payload)}
+	f.service.SetAudioTranscoder(transcoder)
+	payload := append([]byte("OggS"), make([]byte, 40)...)
+	record := uploadWithPurpose(t, f, payload, "recording.ogg", "audio/ogg", "", domain.StatusClean)
+	record.Filename = ""
+	f.store.authorized = record
+
+	download, err := f.service.Download(context.Background(), downloadInput(record.ID))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer func() { _ = download.Content.Close() }()
+
+	if download.Filename != "audio.mp3" {
+		t.Fatalf("filename = %q, want the audio.mp3 fallback", download.Filename)
+	}
+}
+
+// TestDownloadTranscodedFilenameFallsBackWhenTheStoredNameIsInvalidUTF8 covers
+// withMP3Extension's other defensive branch: domain.NormalizeFilename refuses
+// a name that is not valid UTF-8 (a row a normal upload could never produce,
+// since NormalizeFilename already runs at upload time — this guards a
+// corrupted or pre-migration row instead of trusting the extension swap to
+// always succeed).
+func TestDownloadTranscodedFilenameFallsBackWhenTheStoredNameIsInvalidUTF8(t *testing.T) {
+	f := newFixture(t)
+	transcoder := &fakeAudioTranscoder{mp3: []byte(fakeMP3Payload)}
+	f.service.SetAudioTranscoder(transcoder)
+	payload := append([]byte("OggS"), make([]byte, 40)...)
+	record := uploadWithPurpose(t, f, payload, "recording.ogg", "audio/ogg", "", domain.StatusClean)
+	record.Filename = string([]byte{0xff, 0xfe, 0x00})
+	f.store.authorized = record
+
+	download, err := f.service.Download(context.Background(), downloadInput(record.ID))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer func() { _ = download.Content.Close() }()
+
+	if download.Filename != "audio.mp3" {
+		t.Fatalf("filename = %q, want the audio.mp3 fallback", download.Filename)
+	}
+}
+
+// TestDownloadTranscodeFailsCleanlyWhenTheTempFileCannotBeCreated covers the
+// os.CreateTemp failure path: a transcode that otherwise succeeded must
+// still never be reported as a successful download if the spooled file
+// itself could not be created.
+func TestDownloadTranscodeFailsCleanlyWhenTheTempFileCannotBeCreated(t *testing.T) {
+	f := newFixture(t)
+	transcoder := &fakeAudioTranscoder{mp3: []byte(fakeMP3Payload)}
+	f.service.SetAudioTranscoder(transcoder)
+	payload := append([]byte("OggS"), make([]byte, 40)...)
+	record := uploadWithPurpose(t, f, payload, "recording.ogg", "audio/ogg", "", domain.StatusClean)
+	f.store.authorized = record
+
+	// A TMPDIR that does not exist makes os.CreateTemp fail deterministically,
+	// without touching the real temp directory any other test relies on.
+	t.Setenv("TMPDIR", filepath.Join(t.TempDir(), "does-not-exist"))
+
+	_, err := f.service.Download(context.Background(), downloadInput(record.ID))
+	if !errors.Is(err, domain.ErrAudioTranscodeFailed) {
+		t.Fatalf("error = %v, want ErrAudioTranscodeFailed", err)
 	}
 }
