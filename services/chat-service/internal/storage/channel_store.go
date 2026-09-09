@@ -117,7 +117,10 @@ type ChannelStore interface {
 	// A change of display name also writes a conversation_renamed system message
 	// in the same transaction, returned alongside the channel (issue #527).
 	UpdateChannel(ctx context.Context, input UpdateChannelInput) (UpdateChannelResult, error)
-	ArchiveChannel(ctx context.Context, workspaceID, channelID string) (domain.Channel, error)
+	// ArchiveChannel also writes a conversation_archived system message in the
+	// same transaction (issue #685). actorID is the caller whose management
+	// permission the service already re-derived.
+	ArchiveChannel(ctx context.Context, workspaceID, channelID, actorID string) (domain.Channel, error)
 	// LeaveChannelSelf removes the actor's own membership and records the
 	// departure in the same transaction. Self-leave only, and refused for the
 	// general channel in SQL (issue #527).
@@ -859,9 +862,24 @@ func updateChannel(ctx context.Context, q channelQuerier, input UpdateChannelInp
 	return ch, nil
 }
 
-func (s *PGXChannelStore) ArchiveChannel(ctx context.Context, workspaceID, channelID string) (domain.Channel, error) {
+// ArchiveChannel marks a non-general channel archived and records a
+// conversation_archived system event in the same transaction (issue #685),
+// the same pattern updateChannelAuthorized already follows for a rename:
+// the write and the event either both commit or neither does.
+func (s *PGXChannelStore) ArchiveChannel(ctx context.Context, workspaceID, channelID, actorID string) (domain.Channel, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return domain.Channel{}, fmt.Errorf("begin archive channel: %w", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
 	var ch domain.Channel
-	err := s.pool.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		UPDATE chat.channels
 		SET status = 'archived',
 		    updated_at = now()
@@ -887,6 +905,18 @@ func (s *PGXChannelStore) ArchiveChannel(ctx context.Context, workspaceID, chann
 		}
 		return domain.Channel{}, fmt.Errorf("archive channel: %w", err)
 	}
+
+	if _, err := InsertConversationEvent(ctx, tx, ConversationEventInput{
+		WorkspaceID: workspaceID, ChannelID: channelID,
+		ActorID: actorID, Event: domain.ConversationEventArchived,
+	}); err != nil {
+		return domain.Channel{}, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return domain.Channel{}, fmt.Errorf("commit archive channel: %w", err)
+	}
+	committed = true
 	return ch, nil
 }
 

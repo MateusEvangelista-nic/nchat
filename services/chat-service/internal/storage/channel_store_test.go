@@ -56,6 +56,23 @@ func expectConversationCreatedEvent(mock pgxmock.PgxPoolIface, channelID, dmConv
 		)
 }
 
+// expectConversationArchivedEvent sets up the conversation_archived system
+// message ArchiveChannel writes in the same transaction (issue #685).
+func expectConversationArchivedEvent(mock pgxmock.PgxPoolIface, channelID string) {
+	mock.ExpectQuery(`(?s)INSERT INTO chat\.messages.*'system'.*RETURNING`).
+		WithArgs(
+			pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(),
+			pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(),
+		).
+		WillReturnRows(
+			pgxmock.NewRows([]string{
+				"id", "workspace_id", "channel_id", "dm_conversation_id",
+				"sender_id", "kind", "event_type", "created_at",
+			}).AddRow("event-archived", "ws-1", channelID, "", "owner-1", "system",
+				"conversation_archived", time.Now()),
+		)
+}
+
 func expectUpdateChannelPreamble(mock pgxmock.PgxPoolIface, channelID, workspaceID, callerID string) {
 	mock.ExpectQuery(`SELECT id, display_name FROM chat\.channels WHERE id = \$1::uuid FOR UPDATE`).
 		WithArgs(channelID).
@@ -1010,13 +1027,16 @@ func TestPGXChannelStore_ArchiveChannel_WorkspaceBoundNoHardDelete(t *testing.T)
 	defer mock.Close()
 
 	now := time.Now()
+	mock.ExpectBegin()
 	mock.ExpectQuery(`(?s)UPDATE chat\.channels.*SET status = 'archived'.*WHERE workspace_id = \$1.*id = \$2.*status = 'active'.*is_general = false`).
 		WithArgs("ws-1", "ch-1").
 		WillReturnRows(pgxmock.NewRows(channelCols()).
 			AddRow("ch-1", "ws-1", "", "team", "Team", "public", "archived", false, 0, "owner-1", now, now))
+	expectConversationArchivedEvent(mock, "ch-1")
+	mock.ExpectCommit()
 
 	store := storage.NewPGXChannelStore(mock)
-	ch, err := store.ArchiveChannel(context.Background(), "ws-1", "ch-1")
+	ch, err := store.ArchiveChannel(context.Background(), "ws-1", "ch-1", "owner-1")
 	if err != nil {
 		t.Fatalf("ArchiveChannel: %v", err)
 	}
@@ -1035,14 +1055,19 @@ func TestPGXChannelStore_ArchiveChannel_NotFound(t *testing.T) {
 	}
 	defer mock.Close()
 
+	mock.ExpectBegin()
 	mock.ExpectQuery(`UPDATE chat\.channels`).
 		WithArgs("ws-1", "missing").
 		WillReturnRows(pgxmock.NewRows(channelCols()))
+	mock.ExpectRollback()
 
 	store := storage.NewPGXChannelStore(mock)
-	_, err = store.ArchiveChannel(context.Background(), "ws-1", "missing")
+	_, err = store.ArchiveChannel(context.Background(), "ws-1", "missing", "owner-1")
 	if !errors.Is(err, domain.ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
 	}
 }
 
@@ -1053,14 +1078,19 @@ func TestPGXChannelStore_ArchiveChannel_DBError(t *testing.T) {
 	}
 	defer mock.Close()
 
+	mock.ExpectBegin()
 	mock.ExpectQuery(`UPDATE chat\.channels`).
 		WithArgs("ws-1", "ch-1").
 		WillReturnError(errors.New("db unavailable"))
+	mock.ExpectRollback()
 
 	store := storage.NewPGXChannelStore(mock)
-	_, err = store.ArchiveChannel(context.Background(), "ws-1", "ch-1")
+	_, err = store.ArchiveChannel(context.Background(), "ws-1", "ch-1", "owner-1")
 	if err == nil {
 		t.Fatal("expected db error")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
 	}
 }
 
@@ -1071,14 +1101,51 @@ func TestPGXChannelStore_ArchiveChannel_ConstraintErrorMapsDomain(t *testing.T) 
 	}
 	defer mock.Close()
 
+	mock.ExpectBegin()
 	mock.ExpectQuery(`UPDATE chat\.channels`).
 		WithArgs("ws-1", "ch-1").
 		WillReturnError(&pgconn.PgError{Code: "23505", ConstraintName: "channels_workspace_slug_unique"})
+	mock.ExpectRollback()
 
 	store := storage.NewPGXChannelStore(mock)
-	_, err = store.ArchiveChannel(context.Background(), "ws-1", "ch-1")
+	_, err = store.ArchiveChannel(context.Background(), "ws-1", "ch-1", "owner-1")
 	if !errors.Is(err, domain.ErrDuplicateSlug) {
 		t.Fatalf("expected mapped domain error, got %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
+// A failed event insert must roll back the archive too — the change and the
+// event either both commit or neither does (issue #685).
+func TestPGXChannelStore_ArchiveChannel_RollsBackWhenEventInsertFails(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatalf("pgxmock: %v", err)
+	}
+	defer mock.Close()
+
+	now := time.Now()
+	mock.ExpectBegin()
+	mock.ExpectQuery(`(?s)UPDATE chat\.channels.*SET status = 'archived'`).
+		WithArgs("ws-1", "ch-1").
+		WillReturnRows(pgxmock.NewRows(channelCols()).
+			AddRow("ch-1", "ws-1", "", "team", "Team", "public", "archived", false, 0, "owner-1", now, now))
+	mock.ExpectQuery(`(?s)INSERT INTO chat\.messages.*'system'.*RETURNING`).
+		WithArgs(
+			pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(),
+			pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(),
+		).
+		WillReturnError(errors.New("event insert failed"))
+	mock.ExpectRollback()
+
+	store := storage.NewPGXChannelStore(mock)
+	if _, err := store.ArchiveChannel(context.Background(), "ws-1", "ch-1", "owner-1"); err == nil {
+		t.Fatal("expected the event insert failure to surface")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
 	}
 }
 

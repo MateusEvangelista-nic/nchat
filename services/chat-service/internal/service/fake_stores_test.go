@@ -74,6 +74,7 @@ type fakeChannelStore struct {
 	getVisibleBySlugCalls  int
 	creatorMembershipSeeds int
 	archiveCalls           int
+	lastArchiveActorID     string
 
 	leftChannels [][3]string
 	leaveErr     error
@@ -205,8 +206,9 @@ func (f *fakeChannelStore) UpdateChannel(_ context.Context, input storage.Update
 	}, nil
 }
 
-func (f *fakeChannelStore) ArchiveChannel(_ context.Context, workspaceID, channelID string) (domain.Channel, error) {
+func (f *fakeChannelStore) ArchiveChannel(_ context.Context, workspaceID, channelID, actorID string) (domain.Channel, error) {
 	f.archiveCalls++
+	f.lastArchiveActorID = actorID
 	if f.archiveErr != nil {
 		return domain.Channel{}, f.archiveErr
 	}

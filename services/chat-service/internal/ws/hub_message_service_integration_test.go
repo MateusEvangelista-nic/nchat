@@ -69,7 +69,7 @@ func (s *integChannelStore) LeaveChannelSelf(context.Context, string, string, st
 func (s *integChannelStore) UpdateChannel(_ context.Context, _ storage.UpdateChannelInput) (storage.UpdateChannelResult, error) {
 	return storage.UpdateChannelResult{}, nil
 }
-func (s *integChannelStore) ArchiveChannel(_ context.Context, _, _ string) (domain.Channel, error) {
+func (s *integChannelStore) ArchiveChannel(_ context.Context, _, _, _ string) (domain.Channel, error) {
 	return domain.Channel{}, nil
 }
 
