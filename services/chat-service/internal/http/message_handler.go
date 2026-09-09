@@ -228,6 +228,12 @@ type messageJSON struct {
 	// Attachments is omitted entirely for a message that carries none, so every
 	// existing text-only response is byte-for-byte what it was.
 	Attachments []messageAttachmentJSON `json:"attachments,omitempty"`
+	// EventType and EventPayload carry a server-generated conversation event
+	// (issue #527/#685). Both are set only for Kind == "system" — EventPayload
+	// as a pointer so a user message's response has neither field at all,
+	// rather than an empty object claiming to be one.
+	EventType    string                           `json:"event_type,omitempty"`
+	EventPayload *domain.ConversationEventPayload `json:"event_payload,omitempty"`
 }
 
 // messageAttachmentJSON is the only shape of an attachment a message viewer
@@ -571,6 +577,11 @@ func mapToMessageJSON(m domain.Message) messageJSON {
 		// Withheld for a removed message, like the body: the placeholder is the
 		// whole of what a deleted message says.
 		j.Attachments = mapAttachmentsJSON(m.Attachments)
+	}
+	if m.Kind == domain.MessageKindSystem {
+		j.EventType = m.EventType
+		payload := m.EventPayload
+		j.EventPayload = &payload
 	}
 	return j
 }
