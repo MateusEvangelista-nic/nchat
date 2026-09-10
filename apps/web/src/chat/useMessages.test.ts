@@ -21,6 +21,7 @@ import { ApiRequestError } from "../lib/api";
 import { clearTokens, setTokens } from "../lib/authSession";
 import type {
   WSClientErrorEvent,
+  WSConversationEventMessage,
   WSMessageBlockedEvent,
   WSMessageCreatedEvent,
   WSMessageUpdatedEvent,
@@ -50,6 +51,7 @@ let capturedOnReactionError: ((evt: WSClientErrorEvent) => void) | null = null;
 let capturedOnSubscriptionError: ((evt: WSClientErrorEvent) => void) | null = null;
 let capturedOnSubscribed: ((evt: WSSubscribedEvent) => void) | null = null;
 let capturedOnPinUpdated: ((evt: WSPinUpdatedEvent) => void) | null = null;
+let capturedOnConversationEvent: ((evt: WSConversationEventMessage) => void) | null = null;
 const mockToggleReaction = vi.fn(() => true);
 
 vi.mock("./useChatWebSocket", () => ({
@@ -60,6 +62,7 @@ vi.mock("./useChatWebSocket", () => ({
     onMessageUpdated,
     onReactionUpdated,
     onPinUpdated,
+    onConversationEvent,
     onReactionError,
     onSubscriptionError,
     onSubscribed,
@@ -72,6 +75,7 @@ vi.mock("./useChatWebSocket", () => ({
     onMessageUpdated?: (evt: WSMessageUpdatedEvent) => void;
     onReactionUpdated?: (evt: WSReactionUpdatedEvent) => void;
     onPinUpdated?: (evt: WSPinUpdatedEvent) => void;
+    onConversationEvent?: (evt: WSConversationEventMessage) => void;
     onReactionError?: (evt: WSClientErrorEvent) => void;
     onSubscriptionError?: (evt: WSClientErrorEvent) => void;
     onSubscribed?: (evt: WSSubscribedEvent) => void;
@@ -82,6 +86,7 @@ vi.mock("./useChatWebSocket", () => ({
     capturedOnMessageUpdated = onMessageUpdated ?? null;
     capturedOnReactionUpdated = onReactionUpdated ?? null;
     capturedOnPinUpdated = onPinUpdated ?? null;
+    capturedOnConversationEvent = onConversationEvent ?? null;
     capturedOnReactionError = onReactionError ?? null;
     capturedOnSubscriptionError = onSubscriptionError ?? null;
     capturedOnSubscribed = onSubscribed ?? null;
@@ -316,6 +321,20 @@ function fireWsEventNoPayload(
     event_id: "evt-1",
     created_at: new Date().toISOString(),
     workspace_id: "ws-1",
+    target_type: targetType,
+    target_id: targetId,
+    message_id: messageId,
+  });
+}
+
+/** Fire a conversation.event event (issue #685) — always carries only an id. */
+function fireWsConversationEvent(
+  targetType: "channel" | "dm",
+  targetId: string,
+  messageId: string,
+): void {
+  capturedOnConversationEvent?.({
+    type: "conversation.event",
     target_type: targetType,
     target_id: targetId,
     message_id: messageId,
@@ -1488,6 +1507,118 @@ describe("useMessages — WS message.created integration", () => {
     );
     await waitFor(() => expect(result.current.state.messages).toHaveLength(1));
     expect(result.current.state.messages[0]).toEqual(msg);
+  });
+
+  // Issue #685: a system event (member added/removed, rename, archive, call
+  // started/ended) travels over the same connection as message.created, but
+  // — unlike a new user message — it never carries a payload: "the message id
+  // travels, the message does not". It is always resolved by the one
+  // authorized read, inserted if the timeline does not have it yet.
+  it("inserts a system event message via the authorized GET (channel)", async () => {
+    const evt = makeMessage({
+      id: "evt-member-added",
+      kind: "system",
+      eventType: "conversation_member_added",
+      eventPayload: { targetUsers: [{ userId: "user-2", displayName: "Bruno" }] },
+    });
+    mockFetchChannelMessages.mockResolvedValue(emptyPage);
+    mockFetchChannelMessage.mockResolvedValue(evt);
+
+    const { result } = renderHook(() =>
+      useMessages({ kind: "channel", targetId: "ch-evt", currentUserId: "user-me" }),
+    );
+
+    await waitFor(() => expect(result.current.state.status).toBe("ready"));
+
+    act(() => {
+      fireWsConversationEvent("channel", "ch-evt", "evt-member-added");
+    });
+
+    await waitFor(() =>
+      expect(mockFetchChannelMessage).toHaveBeenCalledWith(
+        "ch-evt",
+        "evt-member-added",
+        expect.any(AbortSignal),
+      ),
+    );
+    await waitFor(() => expect(result.current.state.messages).toHaveLength(1));
+    expect(result.current.state.messages[0]).toEqual(evt);
+  });
+
+  it("inserts a system event message via the authorized GET (DM)", async () => {
+    const evt = makeMessage({
+      id: "evt-renamed",
+      kind: "system",
+      eventType: "conversation_renamed",
+      eventPayload: { oldName: "Piloto", newName: "Piloto NChat" },
+    });
+    mockFetchDMMessages.mockResolvedValue(emptyPage);
+    mockFetchDMMessage.mockResolvedValue(evt);
+
+    const { result } = renderHook(() =>
+      useMessages({ kind: "dm", targetId: "conv-evt", currentUserId: "user-me" }),
+    );
+
+    await waitFor(() => expect(result.current.state.status).toBe("ready"));
+
+    act(() => {
+      fireWsConversationEvent("dm", "conv-evt", "evt-renamed");
+    });
+
+    await waitFor(() =>
+      expect(mockFetchDMMessage).toHaveBeenCalledWith(
+        "conv-evt",
+        "evt-renamed",
+        expect.any(AbortSignal),
+      ),
+    );
+    await waitFor(() => expect(result.current.state.messages).toHaveLength(1));
+    expect(result.current.state.messages[0]).toEqual(evt);
+  });
+
+  it("ignores a conversation.event for a different conversation", async () => {
+    mockFetchChannelMessages.mockResolvedValue(emptyPage);
+
+    const { result } = renderHook(() =>
+      useMessages({ kind: "channel", targetId: "ch-mine", currentUserId: "user-me" }),
+    );
+
+    await waitFor(() => expect(result.current.state.status).toBe("ready"));
+
+    act(() => {
+      fireWsConversationEvent("channel", "ch-other", "evt-elsewhere");
+    });
+
+    expect(mockFetchChannelMessage).not.toHaveBeenCalled();
+    expect(result.current.state.messages).toHaveLength(0);
+  });
+
+  it("does not duplicate a system event redelivered while already in the timeline", async () => {
+    const evt = makeMessage({
+      id: "evt-already-here",
+      kind: "system",
+      eventType: "conversation_member_left",
+      eventPayload: {},
+    });
+    mockFetchChannelMessages.mockResolvedValue({ ...emptyPage, messages: [evt] });
+    mockFetchChannelMessage.mockResolvedValue(evt);
+
+    const { result } = renderHook(() =>
+      useMessages({ kind: "channel", targetId: "ch-dup", currentUserId: "user-me" }),
+    );
+
+    await waitFor(() => expect(result.current.state.messages).toHaveLength(1));
+
+    act(() => {
+      fireWsConversationEvent("channel", "ch-dup", "evt-already-here");
+    });
+
+    // The read still happens (it is unconditional, same as any other
+    // authoritative-read fallback), but the reducer's message_snapshot dedups
+    // by id: a redelivered event for a message already rendered must not
+    // produce a second row.
+    await waitFor(() => expect(mockFetchChannelMessage).toHaveBeenCalledTimes(1));
+    expect(result.current.state.messages).toHaveLength(1);
   });
 
   it("records a recoverable realtime error when fallback GET fails", async () => {
