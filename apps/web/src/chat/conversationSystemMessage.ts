@@ -56,7 +56,33 @@ export function systemScopeFor(
  */
 export interface SystemMessagePresentation {
   text: string;
+  /**
+   * A Material Symbols Outlined ligature name (issue #685 visual pass), e.g.
+   * "call". Purely decorative — the event this build cannot describe already
+   * renders nothing above, so there is no icon-only fallback to invent here.
+   */
+  icon: string;
+  /**
+   * "call" gets the design's tinted, higher-emphasis pill (matching the
+   * prototype's .syscall treatment); every other event keeps the existing
+   * neutral one, unchanged since issue #527.
+   */
+  tone: "neutral" | "call";
 }
+
+/** One Material Symbols Outlined ligature per event type, chosen for what
+ * the event is about rather than decoration: adding is the mirror of
+ * removing, a rename is an edit, an archive is a container being closed. */
+const eventIcon: Record<ConversationEventType, string> = {
+  conversation_renamed: "edit",
+  conversation_member_left: "logout",
+  conversation_created: "forum",
+  conversation_archived: "archive",
+  conversation_member_added: "person_add",
+  conversation_member_removed: "person_remove",
+  call_started: "call",
+  call_ended: "call_end",
+};
 
 /**
  * The fallback name for an actor or a target the server could not resolve.
@@ -239,5 +265,8 @@ export function systemMessagePresentation(
     call_ended: () => callEndedText(actorIsViewer, actor, message.eventPayload),
   };
   const text = builders[message.eventType]?.() ?? null;
-  return text ? { text } : null;
+  if (!text) return null;
+  const eventType = message.eventType;
+  const tone = eventType === "call_started" || eventType === "call_ended" ? "call" : "neutral";
+  return { text, icon: eventIcon[eventType], tone };
 }

@@ -35,6 +35,69 @@ describe("systemMessagePresentation", () => {
     );
   });
 
+  // Issue #685 visual pass: every event carries a fixed icon this build
+  // chose from its type, and only the two call events get the "call" tone.
+  it("picks an icon per event type and the call tone only for calls", () => {
+    expect(systemMessagePresentation(systemMessage(), "channel")).toMatchObject({
+      icon: "edit",
+      tone: "neutral",
+    });
+    expect(
+      systemMessagePresentation(
+        systemMessage({ eventType: "conversation_member_left", eventPayload: {} }),
+        "channel",
+      ),
+    ).toMatchObject({ icon: "logout", tone: "neutral" });
+    expect(
+      systemMessagePresentation(
+        systemMessage({ eventType: "conversation_created", eventPayload: {} }),
+        "channel",
+      ),
+    ).toMatchObject({ icon: "forum", tone: "neutral" });
+    expect(
+      systemMessagePresentation(
+        systemMessage({ eventType: "conversation_archived", eventPayload: {} }),
+        "channel",
+      ),
+    ).toMatchObject({ icon: "archive", tone: "neutral" });
+    expect(
+      systemMessagePresentation(
+        systemMessage({
+          eventType: "conversation_member_added",
+          eventPayload: { targetUsers: [{ userId: "user-2", displayName: "Bruno" }] },
+        }),
+        "channel",
+      ),
+    ).toMatchObject({ icon: "person_add", tone: "neutral" });
+    expect(
+      systemMessagePresentation(
+        systemMessage({
+          eventType: "conversation_member_removed",
+          eventPayload: { targetUsers: [{ userId: "user-2", displayName: "Bruno" }] },
+        }),
+        "channel",
+      ),
+    ).toMatchObject({ icon: "person_remove", tone: "neutral" });
+    expect(
+      systemMessagePresentation(
+        systemMessage({
+          eventType: "call_started",
+          eventPayload: { callId: "call-1", callType: "video" },
+        }),
+        "channel",
+      ),
+    ).toMatchObject({ icon: "call", tone: "call" });
+    expect(
+      systemMessagePresentation(
+        systemMessage({
+          eventType: "call_ended",
+          eventPayload: { callId: "call-1", callType: "video", callDurationSeconds: 60 },
+        }),
+        "channel",
+      ),
+    ).toMatchObject({ icon: "call_end", tone: "call" });
+  });
+
   it("describes a group rename", () => {
     expect(
       systemMessagePresentation(
@@ -315,6 +378,45 @@ describe("ConversationSystemMessage", () => {
     expect(line.innerHTML).not.toContain("<img");
     expect(line.innerHTML).not.toContain("<b>");
     expect(line.innerHTML).toContain("&lt;img");
+  });
+
+  // A neutral event keeps the plain pill; only the two call events get the
+  // design's tinted, higher-emphasis treatment (issue #685 visual pass,
+  // matching prototype/claude-design-v1/nic-chat/dm.html's .syscall pill).
+  it("gives only call events the tinted pill", () => {
+    const { container: renamed } = render(
+      <ConversationSystemMessage message={systemMessage()} scope="channel" />,
+    );
+    expect(renamed.querySelector(".chat-system-message--call")).toBeNull();
+
+    const { container: started } = render(
+      <ConversationSystemMessage
+        message={systemMessage({
+          eventType: "call_started",
+          eventPayload: { callId: "call-1", callType: "video" },
+        })}
+        scope="channel"
+      />,
+    );
+    expect(started.querySelector(".chat-system-message--call")).not.toBeNull();
+  });
+
+  // The icon is a fixed ligature this build chose from the event type, never
+  // server data — a text node inside an aria-hidden span, not markup.
+  it("renders a decorative icon matching the event type", () => {
+    render(
+      <ConversationSystemMessage
+        message={systemMessage({
+          eventType: "call_started",
+          eventPayload: { callId: "call-1", callType: "video" },
+        })}
+        scope="channel"
+      />,
+    );
+    const icon = screen.getByTestId("chat-system-message").querySelector(".chat-system-message__icon");
+    expect(icon).not.toBeNull();
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+    expect(icon).toHaveTextContent("call");
   });
 
   it("renders nothing for an event it cannot describe", () => {

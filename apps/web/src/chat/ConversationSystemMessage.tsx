@@ -7,10 +7,13 @@
  * message menu. It follows the day divider's visual language, which is the
  * product's existing way of putting a neutral marker in the timeline.
  *
- * It renders text and nothing else. `old_name` and `new_name` are data written
- * by whoever renamed the conversation, and they reach the DOM as a React text
- * node — never through dangerouslySetInnerHTML and never concatenated into
- * markup — so a name containing `<`, `&` or quotes stays a name.
+ * It renders a decorative icon plus text, nothing else. `old_name` and
+ * `new_name` are data written by whoever renamed the conversation, and they
+ * reach the DOM as a React text node — never through dangerouslySetInnerHTML
+ * and never concatenated into markup — so a name containing `<`, `&` or
+ * quotes stays a name. The icon is a fixed ligature name chosen by this
+ * build from the event type (never server data), so it carries nothing a
+ * server could forge.
  */
 
 import "./ConversationSystemMessage.css";
@@ -40,10 +43,17 @@ export default function ConversationSystemMessage({
   if (!presentation) return null;
   return (
     <p
-      className="chat-system-message"
+      className={
+        presentation.tone === "call"
+          ? "chat-system-message chat-system-message--call"
+          : "chat-system-message"
+      }
       data-testid="chat-system-message"
       data-event={message.eventType}
     >
+      <span className="material-symbols-outlined chat-system-message__icon" aria-hidden="true">
+        {presentation.icon}
+      </span>
       <span className="chat-system-message__text">{presentation.text}</span>
     </p>
   );
