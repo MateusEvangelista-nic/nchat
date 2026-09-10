@@ -5,6 +5,7 @@ import {
   useChatWebSocket,
   type WSAttachmentStatusEvent,
   type WSClientErrorEvent,
+  type WSConversationEventMessage,
   type WSMembersAddedEvent,
   type WSMessageBlockedEvent,
   type WSMessageCreatedEvent,
@@ -249,6 +250,32 @@ export function useMessageRealtime({
     reconcileAttachment,
   );
 
+  /**
+   * Issue #685: a system event was persisted for this conversation — a
+   * member added or removed, a rename, an archive, a call starting or
+   * ending. The socket carries only the message id ("the message id
+   * travels, the message does not"), so this is handled the same way an
+   * update with no payload already is: one authorized read, inserted if the
+   * timeline does not have it yet. Dedup by id in the reducer is what makes
+   * this safe against redelivery or a reconnect replaying the same event.
+   *
+   * Handled internally rather than forwarded to a caller-supplied listener —
+   * unlike pin/members/typing/attachment above, nothing outside the open
+   * timeline needs to react to this one.
+   */
+  const reconcileConversationEvent = useCallback(
+    (event: WSConversationEventMessage) => {
+      if (!event.message_id) return;
+      readMessageSnapshot(event.message_id, true);
+    },
+    [readMessageSnapshot],
+  );
+  const handleConversationEvent = useForwardedTargetEvent(
+    target,
+    undefined,
+    reconcileConversationEvent,
+  );
+
   const { toggleReaction, sendTyping } = useChatWebSocket({
     kind,
     targetId,
@@ -261,6 +288,7 @@ export function useMessageRealtime({
     onPinUpdated: handlePinUpdated,
     onMembersAdded: handleMembersAdded,
     onAttachmentStatus: handleAttachmentStatus,
+    onConversationEvent: handleConversationEvent,
     onReactionError: reactions.handleReactionError,
     onSubscriptionError: handleSubscriptionError,
     onSubscribed: handleSubscribed,

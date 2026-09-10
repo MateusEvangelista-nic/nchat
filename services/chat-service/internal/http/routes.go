@@ -21,6 +21,11 @@ const (
 	// own surface under /members.
 	RouteChannelMembership = "/api/chat/channels/{channelID}/membership"
 	RouteDMMembership      = "/api/chat/dm/{conversationID}/membership"
+	// Issue #685 admin removal, the group counterpart of RouteChannelMember:
+	// distinct from RouteDMMembership above because that one always acts on the
+	// caller, while this one names the target in the path and requires
+	// creatorship.
+	RouteDMParticipant = "/api/chat/dm/{conversationID}/participants/{userID}"
 	// Issue #527 group rename. Under the DM prefix because a group is a
 	// chat.dm_conversations row; served only for PATCH, and only for a group —
 	// a 1:1 conversation matches nothing in the statement behind it.
@@ -51,6 +56,10 @@ const (
 	// a group is a chat.dm_conversations row and not a channel. Neither carries a
 	// workspace segment, for the same reason none of the others does.
 	RouteChannelMembers = "/api/chat/channels/{channelID}/members"
+	// Issue #685 admin removal, distinct from the self-leave DELETE above: this
+	// one names the target in the path and requires management authority, while
+	// RouteChannelMembership always acts on the caller.
+	RouteChannelMember = "/api/chat/channels/{channelID}/members/{userID}"
 	// Issue #398 contextual candidate search. Scoped to the target conversation
 	// because "who can still be added" depends on who is already in it, and the
 	// panel's capped preview is not a membership list. Same prefix convention as

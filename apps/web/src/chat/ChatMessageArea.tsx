@@ -1294,6 +1294,7 @@ function MessageList({
                 key={item.message.id}
                 message={item.message}
                 scope={systemScope}
+                viewerId={currentUserId}
               />
             ) : (
               <MessageBubble

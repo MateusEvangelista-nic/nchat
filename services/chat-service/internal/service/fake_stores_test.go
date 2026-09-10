@@ -74,6 +74,7 @@ type fakeChannelStore struct {
 	getVisibleBySlugCalls  int
 	creatorMembershipSeeds int
 	archiveCalls           int
+	lastArchiveActorID     string
 
 	leftChannels [][3]string
 	leaveErr     error
@@ -205,8 +206,9 @@ func (f *fakeChannelStore) UpdateChannel(_ context.Context, input storage.Update
 	}, nil
 }
 
-func (f *fakeChannelStore) ArchiveChannel(_ context.Context, workspaceID, channelID string) (domain.Channel, error) {
+func (f *fakeChannelStore) ArchiveChannel(_ context.Context, workspaceID, channelID, actorID string) (domain.Channel, error) {
 	f.archiveCalls++
+	f.lastArchiveActorID = actorID
 	if f.archiveErr != nil {
 		return domain.Channel{}, f.archiveErr
 	}
@@ -580,6 +582,20 @@ func (f *fakeMemberStore) RemoveChannelMember(_ context.Context, _, channelID, u
 	}
 	delete(f.channelMembers, cmKey(channelID, userID))
 	return nil
+}
+
+func (f *fakeMemberStore) RemoveChannelMemberByAdmin(_ context.Context, _, channelID, actorID, userID string) (domain.Message, error) {
+	if f.removeCMErr != nil {
+		return domain.Message{}, f.removeCMErr
+	}
+	if _, ok := f.channelMembers[cmKey(channelID, userID)]; !ok {
+		return domain.Message{}, nil
+	}
+	delete(f.channelMembers, cmKey(channelID, userID))
+	return domain.Message{
+		ID: "event-member-removed", ChannelID: channelID, SenderID: actorID,
+		Kind: domain.MessageKindSystem, EventType: string(domain.ConversationEventMemberRemoved),
+	}, nil
 }
 
 func (f *fakeMemberStore) EnsureGeneralMembership(_ context.Context, workspaceID, userID string) error {

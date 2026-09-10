@@ -300,20 +300,46 @@ export interface MentionTarget {
 
 /**
  * The server-generated conversation events a system message can describe
- * (issue #527). A closed set: an event this build does not know is rendered as
- * nothing rather than guessed at.
+ * (issue #527, extended by issue #685). A closed set: an event this build
+ * does not know is rendered as nothing rather than guessed at.
  */
-export type ConversationEventType = "conversation_renamed" | "conversation_member_left";
+export type ConversationEventType =
+  | "conversation_renamed"
+  | "conversation_member_left"
+  | "conversation_created"
+  | "conversation_archived"
+  | "conversation_member_added"
+  | "conversation_member_removed"
+  | "call_started"
+  | "call_ended";
+
+/**
+ * The minimal portrait of a member.added/member.removed target: an id (the
+ * authority — "is this me?") and a display name resolved once, server-side,
+ * at write time. Unlike the actor (always the message's own sender), a
+ * target has no other field to be resolved from, and this client never
+ * fetches a profile by id on its own — so the name travels here, purely
+ * informational, never used to decide anything.
+ */
+export interface ConversationEventTargetUser {
+  userId: string;
+  displayName?: string;
+}
 
 /**
  * The structured facts a system message carries. Deliberately no actor name —
  * the actor is the message's own sender, resolved through the same authorized
  * projection every other message's sender goes through, so nothing a client
- * sends can put a name here.
+ * sends can put a name here. Every field is present only for the event type
+ * it belongs to.
  */
 export interface ConversationEventPayload {
   oldName?: string;
   newName?: string;
+  targetUsers?: ConversationEventTargetUser[];
+  callId?: string;
+  callType?: "audio" | "video";
+  callDurationSeconds?: number;
 }
 
 export interface Message {

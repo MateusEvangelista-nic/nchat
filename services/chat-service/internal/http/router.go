@@ -255,6 +255,9 @@ func NewRouter(cfg config.Config, logger *slog.Logger, state ReadinessState, val
 			// Contextual candidate search (issue #398): its own budget inside the
 			// handler, shared with the workspace-wide search.
 			mux.Handle("GET "+RouteChannelMemberCandidates, authMiddleware(http.HandlerFunc(channels.MemberCandidates)))
+			// Admin removal (issue #685), the counterpart to self-leave above; its own
+			// budget inside the handler, like add-members.
+			mux.Handle("DELETE "+RouteChannelMember, authMiddleware(http.HandlerFunc(channels.RemoveMember)))
 		}
 	}
 	// RF-17 channel categories. Registered only when wired, like the channel and
@@ -283,6 +286,9 @@ func NewRouter(cfg config.Config, logger *slog.Logger, state ReadinessState, val
 		// participation is re-derived inside each write transaction.
 		mux.Handle("PATCH "+RouteDMConversation, authMiddleware(http.HandlerFunc(directMessages.RenameGroup)))
 		mux.Handle("DELETE "+RouteDMMembership, authMiddleware(http.HandlerFunc(directMessages.LeaveGroup)))
+		// Admin removal (issue #685), the counterpart to self-leave above; its own
+		// budget inside the handler, shared with rename and leave.
+		mux.Handle("DELETE "+RouteDMParticipant, authMiddleware(http.HandlerFunc(directMessages.RemoveParticipant)))
 		mux.Handle("GET "+RouteDMMemberCandidates, authMiddleware(http.HandlerFunc(directMessages.ParticipantCandidates)))
 		// Group details (issue #441) is a read, so it shares the listing budget
 		// rather than the write one: the panel refetches on every conversation
