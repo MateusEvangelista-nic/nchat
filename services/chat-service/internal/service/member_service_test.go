@@ -651,6 +651,97 @@ func TestMemberService_RemoveMemberFromChannel_GeneralChannel_Denied(t *testing.
 	}
 }
 
+// A channel lookup failure is an infrastructure fault, not a permission
+// question, so it must surface as a wrapped error rather than ErrForbidden.
+func TestMemberService_RemoveMemberFromChannel_ChannelLookupError(t *testing.T) {
+	ms := newFakeMemberStore()
+	boom := errors.New("channel store unavailable")
+	svc := service.NewMemberService(
+		ms, &fakeChannelStore{getInWorkspaceErr: boom}, &fakeWorkspaceStore{},
+	)
+	if _, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "owner-1", "user-1"); !errors.Is(err, boom) {
+		t.Fatalf("err = %v, want the channel store error wrapped", err)
+	}
+}
+
+// A workspace that no longer exists denies the removal, the same as any other
+// authorization gap — it does not leak as an infrastructure error.
+func TestMemberService_RemoveMemberFromChannel_WorkspaceNotFound(t *testing.T) {
+	ms := newFakeMemberStore()
+	ch := domain.Channel{ID: "ch-1", WorkspaceID: "ws-1", Type: domain.ChannelTypePublic, Status: domain.ChannelStatusActive}
+	svc := service.NewMemberService(
+		ms, &fakeChannelStore{channel: ch}, &fakeWorkspaceStore{getByIDErr: domain.ErrNotFound},
+	)
+	if _, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "owner-1", "user-1"); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("a missing workspace should return ErrForbidden, got: %v", err)
+	}
+}
+
+// A workspace lookup failure other than "not found" is an infrastructure
+// fault and must be wrapped, not swallowed into ErrForbidden.
+func TestMemberService_RemoveMemberFromChannel_WorkspaceLookupError(t *testing.T) {
+	ms := newFakeMemberStore()
+	ch := domain.Channel{ID: "ch-1", WorkspaceID: "ws-1", Type: domain.ChannelTypePublic, Status: domain.ChannelStatusActive}
+	boom := errors.New("workspace store unavailable")
+	svc := service.NewMemberService(
+		ms, &fakeChannelStore{channel: ch}, &fakeWorkspaceStore{getByIDErr: boom},
+	)
+	if _, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "owner-1", "user-1"); !errors.Is(err, boom) {
+		t.Fatalf("err = %v, want the workspace store error wrapped", err)
+	}
+}
+
+func TestMemberService_RemoveMemberFromChannel_WorkspaceInactive_Denied(t *testing.T) {
+	ms := newFakeMemberStore()
+	ch := domain.Channel{ID: "ch-1", WorkspaceID: "ws-1", Type: domain.ChannelTypePublic, Status: domain.ChannelStatusActive}
+	ws := domain.Workspace{ID: "ws-1", Status: domain.WorkspaceStatusDisabled}
+	svc := service.NewMemberService(ms, &fakeChannelStore{channel: ch}, &fakeWorkspaceStore{workspace: ws})
+	if _, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "owner-1", "user-1"); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("a disabled workspace should return ErrForbidden, got: %v", err)
+	}
+}
+
+// A caller with no workspace membership at all is denied the same way a
+// caller with the wrong role is — never an infrastructure error.
+func TestMemberService_RemoveMemberFromChannel_CallerNotAMember_Denied(t *testing.T) {
+	ms := newFakeMemberStore()
+	ch := domain.Channel{ID: "ch-1", WorkspaceID: "ws-1", Type: domain.ChannelTypePublic, Status: domain.ChannelStatusActive}
+	ws := domain.Workspace{ID: "ws-1", Status: domain.WorkspaceStatusActive}
+	svc := service.NewMemberService(ms, &fakeChannelStore{channel: ch}, &fakeWorkspaceStore{workspace: ws})
+	if _, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "stranger-1", "user-1"); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("a non-member caller should return ErrForbidden, got: %v", err)
+	}
+}
+
+// A caller lookup failure other than "not found" is an infrastructure fault
+// and must be wrapped, not treated as a denial.
+func TestMemberService_RemoveMemberFromChannel_CallerLookupError(t *testing.T) {
+	ms := newFakeMemberStore()
+	ms.getWMErr = errors.New("member store unavailable")
+	ch := domain.Channel{ID: "ch-1", WorkspaceID: "ws-1", Type: domain.ChannelTypePublic, Status: domain.ChannelStatusActive}
+	ws := domain.Workspace{ID: "ws-1", Status: domain.WorkspaceStatusActive}
+	svc := service.NewMemberService(ms, &fakeChannelStore{channel: ch}, &fakeWorkspaceStore{workspace: ws})
+	if _, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "owner-1", "user-1"); !errors.Is(err, ms.getWMErr) {
+		t.Fatalf("err = %v, want the member store error wrapped", err)
+	}
+}
+
+// The store's own removal failing (a rolled-back transaction, a deadlock)
+// must surface as a wrapped error, never as a silent no-op.
+func TestMemberService_RemoveMemberFromChannel_StoreErrorIsWrapped(t *testing.T) {
+	ms := newFakeMemberStore()
+	ms.removeCMErr = errors.New("remove channel member: rollback")
+	ch := domain.Channel{ID: "ch-1", WorkspaceID: "ws-1", Type: domain.ChannelTypePublic, Status: domain.ChannelStatusActive}
+	ws := domain.Workspace{ID: "ws-1", Status: domain.WorkspaceStatusActive}
+	ms.workspaceMembers[wmKey("ws-1", "owner-1")] = domain.WorkspaceMember{
+		WorkspaceID: "ws-1", UserID: "owner-1", Role: domain.WorkspaceRoleOwner, Status: domain.MemberStatusActive,
+	}
+	svc := service.NewMemberService(ms, &fakeChannelStore{channel: ch}, &fakeWorkspaceStore{workspace: ws})
+	if _, err := svc.RemoveMemberFromChannel(context.Background(), "ws-1", "ch-1", "owner-1", "user-1"); !errors.Is(err, ms.removeCMErr) {
+		t.Fatalf("err = %v, want the store error wrapped", err)
+	}
+}
+
 // Private channel non-enumeration for every caller state
 
 func TestMemberService_SelfJoinChannel_PrivateChannel_NonMember_ReturnsNotFound(t *testing.T) {

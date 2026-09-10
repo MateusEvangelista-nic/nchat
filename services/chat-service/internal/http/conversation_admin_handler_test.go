@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/nicrepository/nchat/services/chat-service/internal/domain"
+	httpapi "github.com/nicrepository/nchat/services/chat-service/internal/http"
 	"github.com/nicrepository/nchat/services/chat-service/internal/storage"
 )
 
@@ -409,6 +410,56 @@ func TestDMHandler_RemoveParticipant_MapsRefusalsWithoutDescribingState(t *testi
 				t.Fatalf("the response leaks database detail: %s", recorder.Body)
 			}
 		})
+	}
+}
+
+// Without a wired provider, the admin-removal path must fail the same way
+// every other DM/group endpoint does, rather than reach a nil provider.
+func TestDMHandler_RemoveParticipant_UnavailableWithoutDeps(t *testing.T) {
+	recorder := httptest.NewRecorder()
+
+	httpapi.NewDMHandler(nil, nil, nil).RemoveParticipant(
+		recorder, groupRemoveParticipantRequest(dmConversationID, removeParticipantTargetID),
+	)
+
+	if recorder.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503", recorder.Code)
+	}
+}
+
+// Group admin removal shares the group-admin budget: once it is spent, the
+// call must not reach the provider.
+func TestDMHandler_RemoveParticipant_EnforcesTheRateLimit(t *testing.T) {
+	provider := &fakeDMProvider{removeParticipantResult: removedParticipant()}
+	handler := dmTestHandlerWithLimiter(provider, &fakeDMRateLimiter{})
+
+	var last *httptest.ResponseRecorder
+	for i := 0; i < 22; i++ {
+		last = httptest.NewRecorder()
+		handler.RemoveParticipant(last, groupRemoveParticipantRequest(dmConversationID, removeParticipantTargetID))
+	}
+
+	if last.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429 once the budget is spent", last.Code)
+	}
+}
+
+// A workspace that cannot be resolved must refuse the removal before the
+// provider is ever called — the same guarantee every other DM write gives.
+func TestDMHandler_RemoveParticipant_MapsWorkspaceResolutionFailure(t *testing.T) {
+	provider := &fakeDMProvider{removeParticipantResult: removedParticipant()}
+	handler := httpapi.NewDMHandler(
+		&fakeWorkspaceResolver{err: errors.New("workspace lookup failed")}, provider, &fakeDMRateLimiter{},
+	)
+	recorder := httptest.NewRecorder()
+
+	handler.RemoveParticipant(recorder, groupRemoveParticipantRequest(dmConversationID, removeParticipantTargetID))
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want 500", recorder.Code)
+	}
+	if provider.removeParticipantCalls != 0 {
+		t.Fatal("the provider must not be called when the workspace cannot be resolved")
 	}
 }
 

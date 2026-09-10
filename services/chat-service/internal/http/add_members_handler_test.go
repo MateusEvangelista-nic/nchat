@@ -833,3 +833,111 @@ func TestRemoveMember_DoesNotPublishOnFailure(t *testing.T) {
 		})
 	}
 }
+
+// Without WithMembers, the same 503 AddMembers gives before its own service is
+// wired must also guard the admin-removal path — a request must not fall
+// through to a nil member manager.
+func TestRemoveMember_UnavailableWithoutMemberService(t *testing.T) {
+	handler := httpapi.NewChannelHandler(
+		&fakeWorkspaceResolver{workspace: activeWorkspace()}, &fakeChannelProvider{}, &fakeDMRateLimiter{},
+	)
+
+	rec := serveRemoveMember(handler, removeMemberRequest())
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503", rec.Code)
+	}
+}
+
+// An unauthenticated caller never reaches the service, the same guarantee
+// AddMembers gives for its own write.
+func TestRemoveMember_RequiresAuthenticatedUser(t *testing.T) {
+	members := &fakeMemberManager{}
+	r := httptest.NewRequest(
+		http.MethodDelete, "/api/chat/channels/"+testChannelID+"/members/"+removeMemberTargetID, nil,
+	)
+	r.SetPathValue("channelID", testChannelID)
+	r.SetPathValue("userID", removeMemberTargetID)
+
+	rec := serveRemoveMember(addMembersHandler(members, &recordingBroadcaster{}, nil), r)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
+	}
+	if members.removeCalls != 0 {
+		t.Fatal("an unauthenticated request must not reach the service")
+	}
+}
+
+func TestRemoveMember_RejectsNonUUIDChannelID(t *testing.T) {
+	members := &fakeMemberManager{}
+	r := requestWithUser(
+		http.MethodDelete, "/api/chat/channels/nope/members/"+removeMemberTargetID, nil,
+	)
+	r.SetPathValue("channelID", "nope")
+	r.SetPathValue("userID", removeMemberTargetID)
+
+	rec := serveRemoveMember(addMembersHandler(members, &recordingBroadcaster{}, nil), r)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+	if members.removeCalls != 0 {
+		t.Fatal("a malformed channel ID must not reach the service")
+	}
+}
+
+// The target user ID is validated on its own, distinct from the channel ID:
+// a malformed target must be refused before the channel ID's own validity
+// matters.
+func TestRemoveMember_RejectsNonUUIDUserID(t *testing.T) {
+	members := &fakeMemberManager{}
+	r := requestWithUser(
+		http.MethodDelete, "/api/chat/channels/"+testChannelID+"/members/nope", nil,
+	)
+	r.SetPathValue("channelID", testChannelID)
+	r.SetPathValue("userID", "nope")
+
+	rec := serveRemoveMember(addMembersHandler(members, &recordingBroadcaster{}, nil), r)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+	if members.removeCalls != 0 {
+		t.Fatal("a malformed target user ID must not reach the service")
+	}
+}
+
+func TestRemoveMember_EnforcesTheRateLimit(t *testing.T) {
+	limiter := &fakeDMRateLimiter{}
+	handler := addMembersHandler(&fakeMemberManager{}, &recordingBroadcaster{}, limiter)
+
+	var last *httptest.ResponseRecorder
+	for i := 0; i < 12; i++ {
+		last = serveRemoveMember(handler, removeMemberRequest())
+	}
+
+	if last.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429 once the budget is spent", last.Code)
+	}
+	if last.Header().Get("Retry-After") == "" {
+		t.Fatal("a 429 must carry Retry-After")
+	}
+}
+
+// The limiter failing is an infrastructure fault, not permission to proceed.
+func TestRemoveMember_FailsClosedWhenTheLimiterErrors(t *testing.T) {
+	members := &fakeMemberManager{}
+	limiter := &fakeDMRateLimiter{err: errors.New("valkey down")}
+
+	rec := serveRemoveMember(
+		addMembersHandler(members, &recordingBroadcaster{}, limiter), removeMemberRequest(),
+	)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503", rec.Code)
+	}
+	if members.removeCalls != 0 {
+		t.Fatal("the removal must not run when the limiter cannot be consulted")
+	}
+}
