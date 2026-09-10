@@ -167,9 +167,7 @@ describe("systemMessagePresentation", () => {
   describe("conversation created and archived", () => {
     it("describes creation from a third party and from the viewer", () => {
       const created = systemMessage({ eventType: "conversation_created", eventPayload: {} });
-      expect(systemMessagePresentation(created, "channel")?.text).toBe(
-        "Álvaro Neto criou o canal",
-      );
+      expect(systemMessagePresentation(created, "channel")?.text).toBe("Álvaro Neto criou o canal");
       expect(systemMessagePresentation(created, "channel", "user-1")?.text).toBe(
         "Você criou o canal",
       );
@@ -413,7 +411,9 @@ describe("ConversationSystemMessage", () => {
         scope="channel"
       />,
     );
-    const icon = screen.getByTestId("chat-system-message").querySelector(".chat-system-message__icon");
+    const icon = screen
+      .getByTestId("chat-system-message")
+      .querySelector(".chat-system-message__icon");
     expect(icon).not.toBeNull();
     expect(icon).toHaveAttribute("aria-hidden", "true");
     expect(icon).toHaveTextContent("call");
