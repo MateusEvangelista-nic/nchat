@@ -21,13 +21,20 @@ interface ConversationSystemMessageProps {
   message: Message;
   /** Whether the sentence says "canal", "grupo" or "conversa". */
   scope: SystemMessageScope;
+  /**
+   * The reader's own user id (issue #685), used only to pick the "você"
+   * phrasing when the reader is the event's actor or one of its targets.
+   * Optional: omitting it degrades to the third-party phrasing everywhere.
+   */
+  viewerId?: string;
 }
 
 export default function ConversationSystemMessage({
   message,
   scope,
+  viewerId,
 }: ConversationSystemMessageProps) {
-  const presentation = systemMessagePresentation(message, scope);
+  const presentation = systemMessagePresentation(message, scope, viewerId);
   // An event this build cannot describe renders nothing at all, rather than an
   // empty line: a newer server's event must not leave a blank row behind.
   if (!presentation) return null;
