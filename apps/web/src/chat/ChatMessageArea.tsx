@@ -315,8 +315,16 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
         typingStop();
         // Mirrors applySent's own replyTo: null (issue #769) — the reply
         // this message answered is consumed, in the draft as much as in
-        // the live reducer state.
-        if (anchors.conversationKey) drafts.setReply(anchors.conversationKey, null);
+        // the live reducer state. Only when there actually was one: an
+        // unconditional setReply(null) would bump the draft's revision on
+        // every single send, even a plain one with no reply — and the
+        // send-vs-edit-race guard in ChatComposer (issue #769, "ACK
+        // ATRASADO") would then read that as "the reader changed something
+        // since submitting" and leave the just-sent text sitting in the
+        // editor instead of clearing it.
+        if (anchors.conversationKey && drafts.getDraft(anchors.conversationKey)?.replyToMessageId) {
+          drafts.setReply(anchors.conversationKey, null);
+        }
         navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
       }
       return result;

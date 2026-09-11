@@ -373,7 +373,13 @@ export function useConversationDrafts(userId: string): ConversationDraftsApi {
     }
     draftsRef.current.clear();
     clearUserDraftPersistence(userIdRef.current);
-    setSummaries(new Map());
+    // A fresh, empty Map only when there was something to actually clear —
+    // an unconditional new Map() here would change the identity every
+    // single call (e.g. a spurious/duplicate auth-change notification with
+    // nothing to clear), and this value flows straight into
+    // DraftSummariesContext: any identity change re-renders every row in
+    // the sidebar, which a popup menu mid-interaction does not appreciate.
+    setSummaries((prev) => (prev.size === 0 ? prev : new Map()));
   }, []);
 
   return useMemo(

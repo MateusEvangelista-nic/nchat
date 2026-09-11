@@ -663,6 +663,34 @@ describe("composer drafts never cross conversation targets", () => {
     );
   });
 
+  // Regression (issue #769 follow-up): ChatMessageArea's handleSend used to
+  // call drafts.setReply(key, null) unconditionally after every successful
+  // send, even one with no reply — bumping the draft's revision for no real
+  // reason. ChatComposer's ACK-race guard then always saw that bump as "the
+  // reader changed something since submitting" and never cleared the
+  // editor, so a second message typed right after the first got appended
+  // to it instead of replacing it (surfaced by an E2E flow; this is the
+  // unit-level guard against a regression).
+  it("clears the composer after a plain send with no reply, so the next message is not appended to it", async () => {
+    renderAt(`/chat/channel/${channelId}`);
+
+    const input = await typeDraft("primeira");
+    await user.click(screen.getByTestId("chat-send-btn"));
+    await waitFor(() => expect(api.postChannelMessage).toHaveBeenCalledOnce());
+    await waitFor(() => expect(input).not.toHaveTextContent("primeira"));
+
+    await typeDraft("segunda");
+    await user.click(screen.getByTestId("chat-send-btn"));
+    await waitFor(() => expect(api.postChannelMessage).toHaveBeenCalledTimes(2));
+
+    expect(api.postChannelMessage).toHaveBeenNthCalledWith(
+      2,
+      channelId,
+      "segunda",
+      expect.anything(),
+    );
+  });
+
   it("destroys the previous editor instance and leaves no stray mention popup", async () => {
     const warn = vi.spyOn(console, "error").mockImplementation(() => undefined);
     renderAt(`/chat/channel/${secretChannelId}`);
