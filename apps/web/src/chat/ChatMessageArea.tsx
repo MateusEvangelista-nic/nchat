@@ -64,6 +64,7 @@ import ConversationSystemMessage from "./ConversationSystemMessage.tsx";
 import { systemScopeFor, type SystemMessageScope } from "./conversationSystemMessage";
 import { conversationDetailsPanelId } from "./conversationDetailsDisplay";
 import ChatComposer from "./ChatComposer";
+import { noopConversationDrafts } from "./useConversationDrafts";
 import ForwardMessageDialog, { type ForwardSourceContext } from "./ForwardMessageDialog";
 import MessageBubble, { type MessageBubbleProps } from "./MessageBubble";
 import PresenceDot from "./PresenceDot";
@@ -1839,6 +1840,10 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
   // depends on React noticing a mutation to it.
   const [viewportAnchors] = useState(() => new Map<string, ViewportAnchor>());
   const conversationKey = targetId ? `${kind}:${targetId}` : "";
+  // Issue #769: falls back to a no-op store when the outlet context has not
+  // reached AppShell's real one yet (mirrors emptyOutletContext), so a
+  // screen rendered before that is ready never behaves as if drafts exist.
+  const drafts = ctx.drafts ?? noopConversationDrafts;
   const unreadCountAtOpen = useMemo(() => {
     if (!targetId) return 0;
     const list = kind === "channel" ? ctx.channels : ctx.dms;
@@ -1909,8 +1914,8 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
     sendMessage,
     retry,
     loadMore,
-    selectReply,
-    cancelReply,
+    selectReply: selectReplyBase,
+    cancelReply: cancelReplyBase,
     toggleReaction,
     sendTyping,
     toggleFavorite,
@@ -1949,6 +1954,49 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
     onAttachmentStatus: reloadOpenDetails,
     onMessageRemoved: reloadPins,
   });
+
+  // Issue #769, "REPLY CONTEXT": selectReply/cancelReply already own the
+  // *live* reply used for sending — these two wrappers are the only place
+  // that also mirrors it into the conversation's draft, so it comes back
+  // after a conversation switch the same way the text does.
+  const selectReply = useCallback(
+    (message: Message) => {
+      selectReplyBase(message);
+      if (conversationKey) drafts.setReply(conversationKey, message.id);
+    },
+    [selectReplyBase, drafts, conversationKey],
+  );
+  const cancelReply = useCallback(() => {
+    cancelReplyBase();
+    if (conversationKey) drafts.setReply(conversationKey, null);
+  }, [cancelReplyBase, drafts, conversationKey]);
+
+  // Issue #769: historyReducer.applyLoaded unconditionally resets replyTo on
+  // every initial load, i.e. on every conversation switch (#492 review) —
+  // correct for a composer that used to lose its own draft the same way,
+  // wrong now that the reply is supposed to survive one. Restoring it here,
+  // once the messages a reply target could be found in have actually
+  // loaded, keeps that reset (nothing else here needs to know this ever
+  // happened) while still bringing the reply back for the reader.
+  //
+  // A reply whose message is not in the loaded page — deleted, or simply
+  // outside it — is dropped rather than guessed at: RF says "não apagar
+  // texto", not "restore at any cost", and a dangling replyTo the server
+  // would reject on send is worse than none.
+  useEffect(() => {
+    if (state.status !== "ready" || state.replyTo || !conversationKey) return;
+    const draftReplyId = drafts.getDraft(conversationKey)?.replyToMessageId;
+    if (!draftReplyId) return;
+    const message = state.messages.find((m) => m.id === draftReplyId);
+    if (message) {
+      selectReplyBase(message);
+    } else {
+      drafts.setReply(conversationKey, null);
+    }
+    // Runs once per conversation becoming ready, not on every message-list
+    // change (e.g. a realtime append must not re-trigger this).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.status, conversationKey]);
 
   const typing = useTypingIndicator({
     kind,
@@ -2054,11 +2102,17 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
         // do not wait for the composer-cleared activity event or the
         // inactivity timeout to catch up.
         typingStop();
+        // Mirrors applySent's own replyTo: null (issue #769) — the reply
+        // this message answered is consumed, in the draft as much as in
+        // the live reducer state.
+        if (conversationKey) drafts.setReply(conversationKey, null);
         navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
       }
       return result;
     },
     [
+      conversationKey,
+      drafts,
       location.pathname,
       location.search,
       navigate,
@@ -2314,13 +2368,16 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
 
         {/*
         The composer is keyed by the conversation identity so switching targets
-        destroys the TipTap instance and mounts an empty one. The editor body is
-        the only per-target state React Router's in-place route update would
-        otherwise carry over — every other piece of state here already resets
-        through useMessages/usePins. Without this key, a draft typed in channel A
-        stays in the composer for channel B (both are bodyFormat "v3", so
-        useEditor keeps the same instance) and the send button would post it to
-        the wrong conversation. Drafts are deliberately not persisted.
+        destroys the TipTap instance and mounts a fresh one, rather than one
+        editor silently carrying content from channel A into channel B (both
+        are bodyFormat "v3", so useEditor would otherwise keep the same
+        instance) and the send button posting it to the wrong conversation.
+        That isolation is still exactly why the key exists (issue #769
+        review) — what changed is that the content is no longer thrown away
+        on the way out: `drafts` (an AppShell-level store, keyed the same
+        way, unaffected by this remount) is what the fresh instance below
+        seeds itself from and writes back into, so the same content comes
+        back on returning to this target instead of finding it gone.
       */}
         <ChatComposer
           key={`${kind}:${targetId}`}
@@ -2330,6 +2387,7 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
           disabled={state.status !== "ready"}
           replyPreview={replyPreview}
           onCancelReply={cancelReply}
+          drafts={drafts}
           referencePreview={pendingReference.preview}
           referenceTargetLabel={pendingReference.originLabel}
           onCancelReference={clearPendingReference}
