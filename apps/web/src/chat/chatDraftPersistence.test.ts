@@ -117,7 +117,11 @@ describe("chatDraftPersistence", () => {
     });
 
     it("returns every valid entry for the user, skipping corrupt or invalid ones", () => {
-      saveDraftPersistence("u1", "channel:c1", { text: null, replyToMessageId: "m1", updatedAt: 1 });
+      saveDraftPersistence("u1", "channel:c1", {
+        text: null,
+        replyToMessageId: "m1",
+        updatedAt: 1,
+      });
       saveDraftPersistence("u1", "dm:d1", { text: null, replyToMessageId: "m2", updatedAt: 2 });
       sessionStorage.setItem("nchat.chat.draft.v1:u1:channel:broken", "{not json");
       sessionStorage.setItem(

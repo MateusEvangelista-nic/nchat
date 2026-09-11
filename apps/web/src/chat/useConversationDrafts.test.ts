@@ -298,5 +298,4 @@ describe("useConversationDrafts", () => {
     expect(result.current.getDraft("dm:stale")).toBeUndefined();
     expect(result.current.summaries.has("dm:stale")).toBe(false);
   });
-
 });
