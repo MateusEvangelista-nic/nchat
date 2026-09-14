@@ -25,7 +25,7 @@ import { useReactionMenu } from "./message-area/timeline/useReactionMenu";
 
 const MENU = { width: 246, height: 36 };
 /** The distance the toolbar keeps from the bubble (MessageToolbar's toolbarGap). */
-const GAP = 6;
+const GAP = 3;
 /** What the toolbar's top edge sits above the bubble's when placed above it. */
 const ABOVE = MENU.height + GAP;
 /** The list's band on screen: inside a 1024×768 window, below a header. */
@@ -158,6 +158,47 @@ describe("reaction toolbar placement", () => {
     const toolbarBottom = Number.parseFloat(toolbar().style.top) + MENU.height;
     expect(300 - toolbarBottom).toBeGreaterThan(0);
     expectClearOfBubble();
+  });
+
+  // The main regression of issue #852: two consecutive messages close enough
+  // together that the previous #839 gap (6px) would have put the toolbar's
+  // top edge 2px inside the message above it — 240px below versus this
+  // 40px-tall bubble's 240px bottom edge. The tightened gap clears it by 1px
+  // instead, which is exactly the improvement this issue asks for: not that
+  // the toolbar never touches a tight pair (that is a placement-fallback
+  // question outside this issue's scope), but that it no longer reads as
+  // belonging to the message before the one it actually controls.
+  it("clears the previous message's bubble in a consecutive pair (issue #852)", () => {
+    const previous = box(200, 313, 511);
+    layout.bubble = box(previous.bottom + 40, 313, 511);
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (
+      this: Element,
+    ) {
+      if (this.classList.contains("chat-msg-area__list")) return rect(LIST);
+      if (this.classList.contains("chat-msg-area__msg-bubble")) {
+        return this.closest("[data-message-id]")?.getAttribute("data-message-id") === "msg-0"
+          ? previous
+          : layout.bubble;
+      }
+      if (this.getAttribute("role") === "toolbar") return box(0, 0, MENU.width, MENU.height);
+      if (this.getAttribute("aria-label") === "Mais reações") return box(300, 500, 30, 30);
+      return rect({});
+    });
+
+    render(
+      <div className="chat-msg-area__list">
+        <MessageBubble
+          {...propsWith({ message: messageWith({ id: "msg-0" }), reactionMenuVisible: false })}
+        />
+        <MessageBubble {...propsWith()} />
+      </div>,
+    );
+
+    const toolbarTop = Number.parseFloat(toolbar().style.top);
+    expect(toolbarTop, "toolbar não invade a bolha anterior").toBeGreaterThanOrEqual(
+      previous.bottom,
+    );
+    expect(layout.bubble.top - (toolbarTop + MENU.height), "gap positivo e compacto").toBe(GAP);
   });
 
   // Mirrored for the reader's own message: it ends at the bubble's middle, and

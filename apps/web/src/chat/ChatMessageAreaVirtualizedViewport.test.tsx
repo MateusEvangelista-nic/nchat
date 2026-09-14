@@ -119,7 +119,7 @@ const NON_MESSAGE_ROW_HEIGHT = 40;
 const TOOLBAR_WIDTH_PX = 246;
 const TOOLBAR_HEIGHT_PX = 36;
 /** The gap it keeps from the bubble (MessageToolbar's toolbarGap). */
-const TOOLBAR_GAP_PX = 6;
+const TOOLBAR_GAP_PX = 3;
 
 /**
  * The ordinal in a fixture message id, including the negative ids a prepended

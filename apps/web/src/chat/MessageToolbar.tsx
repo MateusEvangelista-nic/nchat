@@ -38,11 +38,12 @@ const popoverSupported =
 /**
  * Distance kept between the toolbar and the bubble, above it and below it.
  *
- * The same six pixels the reaction-authors tooltip keeps from its badge: the
- * toolbar reads as attached to the message without touching it, and the gap is
- * the same wherever the timeline puts the bubble.
+ * Small enough that the toolbar reads as attached to its own bubble rather
+ * than the one above it (issue #852) — six pixels of border/shadow around the
+ * toolbar already read as separation, so the gap itself only needs to keep it
+ * from touching the bubble, not carry the whole visual distance on its own.
  */
-const toolbarGap = 6;
+const toolbarGap = 3;
 
 export interface MessageToolbarProps {
   message: Message;
