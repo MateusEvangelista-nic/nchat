@@ -359,10 +359,11 @@ function useReactionPickerPlacement({
     // not fitting, and the existing hidden fallback takes it from there
     // exactly as it does for the list's own edges.
     //
-    // Offset back by the edge padding placeAgainstAnchor always adds: that
-    // padding is for the list's own edges, not for a neighboring message, so
-    // the real ask here — touching is fine, crossing is not — should not
-    // need more clearance than the list's edge does.
+    // Left at the same edge padding as the list's own edges, not offset back
+    // to allow touching: a toolbar placed flush against a neighbor is a
+    // pointer's-width away from opening the wrong message on a hover that
+    // barely overshoots it, and a menu the reader cannot aim at reliably is
+    // worse than the fallback that avoids it.
     const bounds = visibleBounds(anchor);
     const previousBottom = previousBubbleBottom(anchor);
     const nextTop = nextBubbleTop(anchor);
@@ -375,11 +376,11 @@ function useReactionPickerPlacement({
       ...bounds,
       top:
         previousBottom !== null && previousBottom > bounds.top && previousBottom <= bubble.top
-          ? previousBottom - viewportPadding
+          ? previousBottom
           : bounds.top,
       bottom:
         nextTop !== null && nextTop < bounds.bottom && nextTop >= bubble.bottom
-          ? nextTop + viewportPadding
+          ? nextTop
           : bounds.bottom,
     };
     let placed = placeAgainstAnchor(

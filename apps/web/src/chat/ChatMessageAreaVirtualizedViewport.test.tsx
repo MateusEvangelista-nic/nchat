@@ -324,8 +324,8 @@ function installScrollport(): Scrollport {
   // touch exactly — a geometry no real conversation produces, and one the
   // toolbar's placement (issue #852) would read as no room to sit above the
   // second one at all.
-  const BUBBLE_INSET_TOP_PX = 28;
-  const BUBBLE_INSET_BOTTOM_PX = 16;
+  const BUBBLE_INSET_TOP_PX = 34;
+  const BUBBLE_INSET_BOTTOM_PX = 18;
   Element.prototype.getBoundingClientRect = function getBoundingClientRect(this: Element) {
     if (this instanceof HTMLElement) {
       if (this.classList.contains("chat-msg-area__list")) return rectAt(0, VIEWPORT_PX);
