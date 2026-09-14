@@ -167,15 +167,23 @@ describe("reaction toolbar placement", () => {
    * Renders a target message between an optional previous and next one, with
    * each bubble's rect keyed by message id — the geometry issue #852 needs,
    * and more than `layout.bubble` alone can express with more than one
-   * bubble in play.
+   * bubble in play. `previousReactions` extends the previous message's own
+   * footprint the way its reaction badges do, past its bubble's bottom.
    */
-  function renderWithNeighbors(previous?: DOMRect, next?: DOMRect) {
+  function renderWithNeighbors(previous?: DOMRect, next?: DOMRect, previousReactions?: DOMRect) {
     vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (
       this: Element,
     ) {
       if (this.classList.contains("chat-msg-area__list")) return rect(LIST);
+      const id = this.closest("[data-message-id]")?.getAttribute("data-message-id");
+      if (
+        this.classList.contains("chat-msg-area__reactions") &&
+        id === "msg-0" &&
+        previousReactions
+      ) {
+        return previousReactions;
+      }
       if (this.classList.contains("chat-msg-area__msg-bubble")) {
-        const id = this.closest("[data-message-id]")?.getAttribute("data-message-id");
         if (id === "msg-0" && previous) return previous;
         if (id === "msg-2" && next) return next;
         return layout.bubble;
@@ -184,11 +192,24 @@ describe("reaction toolbar placement", () => {
       if (this.getAttribute("aria-label") === "Mais reações") return box(300, 500, 30, 30);
       return rect({});
     });
+    const previousReactionList = previousReactions
+      ? [
+          {
+            emoji: "👍",
+            count: 1,
+            reactedByMe: false,
+            users: [{ userId: "user-2", displayName: "Outra pessoa" }],
+          },
+        ]
+      : [];
     render(
       <div className="chat-msg-area__list">
         {previous && (
           <MessageBubble
-            {...propsWith({ message: messageWith({ id: "msg-0" }), reactionMenuVisible: false })}
+            {...propsWith({
+              message: messageWith({ id: "msg-0", reactions: previousReactionList }),
+              reactionMenuVisible: false,
+            })}
           />
         )}
         <MessageBubble {...propsWith()} />
@@ -235,6 +256,23 @@ describe("reaction toolbar placement", () => {
     const toolbarTop = Number.parseFloat(toolbar().style.top);
     expect(toolbarTop, "toolbar não invade a bolha anterior").toBeGreaterThanOrEqual(
       previous.bottom,
+    );
+  });
+
+  // A second regression of issue #852: the previous message's bubble alone
+  // leaves 60px, comfortably above the 39px needed — but its reaction
+  // badges, rendered below the bubble, push its real bottom edge down by
+  // another 26px, to only 34px of true room. Reading just the bubble would
+  // have placed the toolbar over those badges.
+  it("does not cross into the previous message's reaction badges", () => {
+    const previous = box(100, 313, 511);
+    const previousReactions = box(previous.bottom, 313, 100, 26);
+    layout.bubble = box(previous.bottom + 60, 313, 511);
+    renderWithNeighbors(previous, undefined, previousReactions);
+
+    const toolbarTop = Number.parseFloat(toolbar().style.top);
+    expect(toolbarTop, "toolbar não invade as reações da bolha anterior").toBeGreaterThanOrEqual(
+      previousReactions.bottom,
     );
   });
 

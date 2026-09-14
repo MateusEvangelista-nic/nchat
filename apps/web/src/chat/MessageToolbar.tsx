@@ -214,16 +214,29 @@ interface Placement {
 }
 
 /**
- * The bottom edge of the previous message's bubble, if one is mounted right
- * before this one (issue #852): placing the toolbar above the target must
- * leave that bubble alone too, not just the list's own edges, or a pair
- * grouped close together reads as the toolbar belonging to the wrong message.
+ * The bottom edge of a message's own content — its reaction badges when it
+ * has any, since those sit below its bubble and are still part of what
+ * reads as belonging to it, or its bubble otherwise. `null` for a shell with
+ * neither, such as a system event's own layout.
+ */
+function messageBottom(shell: Element): number | null {
+  const box =
+    shell.querySelector(".chat-msg-area__reactions") ??
+    shell.querySelector(".chat-msg-area__msg-bubble");
+  return box ? box.getBoundingClientRect().bottom : null;
+}
+
+/**
+ * The bottom edge of the previous message, if one is mounted right before
+ * this one (issue #852): placing the toolbar above the target must leave
+ * that message alone too, not just the list's own edges, or a pair grouped
+ * close together reads as the toolbar belonging to the wrong message.
  *
  * A virtualized row wraps the message shell in its own translated container
  * (issue #839), so the sibling that matters is the wrapper's, not the
  * shell's — walking the shell's own siblings would see nothing between rows.
  * A non-message row in between (a day divider) has nothing to compare
- * against, so it counts as no previous bubble rather than reaching past it.
+ * against, so it counts as no previous message rather than reaching past it.
  */
 function previousBubbleBottom(anchor: Element): number | null {
   const shell = anchor.closest("[data-message-id]");
@@ -233,8 +246,7 @@ function previousBubbleBottom(anchor: Element): number | null {
   const previousShell = sibling.matches("[data-message-id]")
     ? sibling
     : sibling.querySelector("[data-message-id]");
-  const bubble = previousShell?.querySelector(".chat-msg-area__msg-bubble");
-  return bubble ? bubble.getBoundingClientRect().bottom : null;
+  return previousShell ? messageBottom(previousShell) : null;
 }
 
 /**
