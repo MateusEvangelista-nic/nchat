@@ -35,6 +35,7 @@ import { useLocation, useNavigate } from "react-router";
 
 import "./ChatMessageArea.css";
 import type { Message } from "./chatTypes";
+import type { MentionType } from "./richTextMarkers";
 import { fetchAllowedReactionEmojis } from "./chatApi";
 import { usePendingReference } from "./usePendingReference";
 import { useConversationTarget } from "./useConversationTarget";
@@ -417,6 +418,20 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
     [location.pathname, location.search, navigate],
   );
 
+  // Clicking an individual @mention opens a DM with that user (issue #795).
+  // `@all`/non-user mentions and a mention of the reader themself never reach
+  // here — RichTextRenderer only wires the click affordance for a "user"
+  // mention whose id differs from mentionInteraction.currentUserId — but the
+  // guard is repeated here too, since this handler is the one thing actually
+  // calling getOrCreateDirectDM.
+  const handleMentionClick = useCallback(
+    (mentionType: MentionType, id: string) => {
+      if (mentionType !== "user" || !id || id === ctx.currentUserId) return;
+      authorDM.openMentionDM(id);
+    },
+    [ctx.currentUserId, authorDM],
+  );
+
   // One object rather than a dozen props: the timeline hands every one of these
   // straight down to a message, and none of them means anything on its own here.
   const messageActions = {
@@ -426,6 +441,7 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
     onForwardMessage: dialogs.openForward,
     onReferenceJump: jumpToReference,
     onOpenAuthorDM: authorDMAction(ctx.currentUserId, kind, activeDM, authorDM.openAuthorDM),
+    onMentionClick: handleMentionClick,
     onToggleFavorite: toggleFavorite,
     onReconcileLinkSafety: reconcileLinkSafety,
     onEditMessage: editMessageLocal,
