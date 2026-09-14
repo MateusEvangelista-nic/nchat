@@ -291,13 +291,21 @@ describe("reaction toolbar placement", () => {
     expect(hiddenToolbar()).toHaveStyle({ visibility: "hidden" });
   });
 
-  // Mirrored for the reader's own message: it ends at the bubble's middle, and
-  // a toolbar wider than a short bubble simply extends to the left of it —
-  // never squeezed to the bubble's width, never centred on it.
+  // Mirrored for the reader's own message: it ends at the bubble's middle,
+  // and a toolbar wider than a short bubble simply extends to the left of
+  // it — never squeezed to the bubble's width, never centred on it. Placed
+  // close enough to the list's own left edge that beside it (now preferred,
+  // issue #852) has nowhere to go, so this exercises the above placement
+  // this formula belongs to.
   it("ends at the middle of the reader's own short message, keeping its own width", () => {
-    layout.bubble = box(300, 900, 80);
+    // Close enough to the list's left edge that beside (now preferred,
+    // issue #852) has no room on the left of a short bubble — 430 - 3 - 246
+    // = 181, short of LIST.left(200) + PADDING(8) — so this exercises the
+    // midX formula above belongs to, not beside's own left/width math.
+    layout.bubble = box(300, 430, 80);
     renderToolbar({ isMine: true });
-    expect(toolbar()).toHaveStyle({ top: `${300 - ABOVE}px`, left: `${940 - MENU.width}px` });
+    const midX = 430 + 40;
+    expect(toolbar()).toHaveStyle({ top: `${300 - ABOVE}px`, left: `${midX - MENU.width}px` });
   });
 
   it("stays whole inside the list's band at either side", () => {
