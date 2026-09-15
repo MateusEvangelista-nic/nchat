@@ -331,7 +331,7 @@ type MessagePayload struct {
 	// Same reasoning as AcknowledgementRequired above: a message inserted from
 	// this event and the same message after a reload must render identically
 	// (issue #846), so a flag carried by only one of the two paths would show
-	// the "Persistente" notice after a refresh and not before it.
+	// the persistent-reminder notice after a refresh and not before it.
 	PersistentNotifications bool `json:"persistent_notifications"`
 	// LinkSafetyState is the link-safety axis, independent of Status (issue #135).
 	// A subscriber uses it to decide whether to draw the "could not verify this
