@@ -286,6 +286,37 @@ function LinkSafetyNotice({
  * which is the requirement. The bubble's own surface is never repainted: an
  * urgent message stays as readable as any other.
  */
+/**
+ * The complementary claims a priority badge carries alongside it (issue #846):
+ * a request for confirmation and, when the message is also persistent, the
+ * reminder policy. Rendered only beside an actual priority badge — `standard`
+ * still draws nothing at all, so a message this build has no reason to flag
+ * never grows a metadata row it did not have before.
+ *
+ * Neither tag is inferred from the priority (issue #846's own rule): each
+ * reads its own field, and an urgent message with neither flag set shows
+ * neither tag.
+ */
+function MessagePriorityTags({ message }: { message: Message }) {
+  return (
+    <>
+      {message.acknowledgementRequired && (
+        <span className="chat-msg-area__priority-tag" data-testid="chat-message-priority-ack-tag">
+          Requer confirmação
+        </span>
+      )}
+      {message.persistentNotifications && (
+        <span
+          className="chat-msg-area__priority-tag"
+          data-testid="chat-message-priority-persistent-tag"
+        >
+          Persistente
+        </span>
+      )}
+    </>
+  );
+}
+
 function MessagePriorityBadge({ message }: { message: Message }) {
   // A removed message is replaced by its placeholder, and the claim its author
   // made about it goes with everything else the placeholder replaces.
@@ -308,6 +339,7 @@ function MessagePriorityBadge({ message }: { message: Message }) {
           icon says nothing, so the state is announced exactly once. */}
       <span className="sr-only">Prioridade da mensagem:</span>
       <span className="chat-msg-area__priority-label">{badge.label}</span>
+      <MessagePriorityTags message={message} />
     </div>
   );
 }

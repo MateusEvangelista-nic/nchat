@@ -3381,6 +3381,23 @@
   text-transform: uppercase;
 }
 
+/* Complementary claims beside the priority label (issue #846): "Requer
+   confirmação" and "Persistente", each a plain word rather than the priority's
+   own uppercase/letter-spacing — they are metadata about the badge, not a
+   second badge, and the "•" is drawn by CSS so it is never read to a screen
+   reader as a bullet list. */
+.chat-msg-area__priority-tag {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.chat-msg-area__priority-tag::before {
+  content: "•";
+  margin: 0 4px;
+  opacity: 0.7;
+}
+
 /* Moderate emphasis: the design system's own accent, never an alarm. */
 .chat-msg-area__priority--important {
   border-left-color: var(--color-primary, #0e7490);
@@ -3411,26 +3428,61 @@
   font-size: 12px;
 }
 
+/* A compact action, not a bordered button (issue #846): the footer reads as
+   one line of text with a live word in it, matching the Mattermost-inspired
+   reference — "Confirmar recebimento" is a call to action, not a card. */
 .chat-msg-ack__action {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border: 1px solid var(--color-border, #e8e3f0);
-  border-radius: 999px;
-  background: var(--color-surface, #fff);
-  color: var(--color-ink, #16121f);
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-primary-strong, #155e75);
   font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
   cursor: pointer;
 }
 
 .chat-msg-ack__action:hover:not(:disabled) {
-  background: var(--color-surface-2, #f8fbfc);
+  color: var(--color-primary, #0e7490);
+}
+
+.chat-msg-ack__action:focus-visible {
+  outline: 2px solid var(--color-primary, #0e7490);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm, 4px);
 }
 
 .chat-msg-ack__action:disabled {
   cursor: default;
   opacity: 0.6;
+  text-decoration: none;
+}
+
+/* The sender's summary count, when it doubles as the popover's trigger. */
+.chat-msg-ack__count--action {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-ink, #16121f);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.chat-msg-ack__count--action:hover {
+  color: var(--color-primary-strong, #155e75);
+}
+
+.chat-msg-ack__count--action:focus-visible {
+  outline: 2px solid var(--color-primary, #0e7490);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm, 4px);
 }
 
 /* The resolved states carry their own words (see MessageAcknowledgement), so
