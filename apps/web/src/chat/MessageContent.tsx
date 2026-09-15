@@ -279,12 +279,19 @@ function LinkSafetyNotice({
  * author's claim about their own message; no reader gains an action, a
  * permission or a view because of it, and nothing here decides what may be seen.
  *
- * The badge is text and an icon first. The stylesheet tints it — a moderate
- * accent for `important`, the semantic danger colour for `urgent`, and a thin
- * left rule borrowed from the composer's own statement of the same axis — but
+ * The badge is text and an icon first. The stylesheet tints it — the
+ * product's own accent colour for `important`, a warm warning tone for
+ * `urgent` (issue #846's Figma reference keeps the strong danger red for the
+ * separate "Persistente" notice, not for the priority chip itself) — but
  * removing every colour from this page would leave both states fully legible,
  * which is the requirement. The bubble's own surface is never repainted: an
  * urgent message stays as readable as any other.
+ *
+ * Composition follows the "Mattermost-inspired compact" Figma reference
+ * (issue #846): the priority itself is a lighter rounded chip, and the
+ * complementary claims — "Requer confirmação", "Persistente" — are plain
+ * muted words beside it, never a second chip and never a dark bar behind
+ * the row.
  */
 /**
  * The complementary claims a priority badge carries alongside it (issue #846):
@@ -307,7 +314,7 @@ function MessagePriorityTags({ message }: { message: Message }) {
       )}
       {message.persistentNotifications && (
         <span
-          className="chat-msg-area__priority-tag"
+          className="chat-msg-area__priority-tag chat-msg-area__priority-tag--persistent"
           data-testid="chat-message-priority-persistent-tag"
         >
           Persistente
@@ -330,15 +337,18 @@ function MessagePriorityBadge({ message }: { message: Message }) {
       data-testid="chat-message-priority"
       data-priority={message.priority}
     >
-      <span className="material-symbols-outlined" aria-hidden="true">
-        {badge.icon}
+      <span className="chat-msg-area__priority-chip">
+        <span className="material-symbols-outlined" aria-hidden="true">
+          {badge.icon}
+        </span>
+        {/* The visible word alone is "Urgente", which is unambiguous next to
+            the message it labels but not when a screen reader reaches it out
+            of that context. This names the axis; the label below is the
+            value, and the icon says nothing, so the state is announced
+            exactly once. */}
+        <span className="sr-only">Prioridade da mensagem:</span>
+        <span className="chat-msg-area__priority-label">{badge.label}</span>
       </span>
-      {/* The visible word alone is "Urgente", which is unambiguous next to the
-          message it labels but not when a screen reader reaches it out of that
-          context. This names the axis; the label below is the value, and the
-          icon says nothing, so the state is announced exactly once. */}
-      <span className="sr-only">Prioridade da mensagem:</span>
-      <span className="chat-msg-area__priority-label">{badge.label}</span>
       <MessagePriorityTags message={message} />
     </div>
   );
