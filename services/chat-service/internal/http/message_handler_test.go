@@ -1218,7 +1218,7 @@ func TestMessageHandler_SearchMentions_RejectsInvalidOrUnauthenticatedRequests(t
 
 func TestMessageHandler_SearchMentions_ReturnsAuthorizedCandidates(t *testing.T) {
 	mentions := &fakeMentionProvider{out: service.SearchMentionsOutput{
-		Users:    []domain.MentionCandidate{{Type: domain.MentionTypeUser, ID: msgTestUserID, Label: "Alice"}},
+		Users:    []domain.MentionCandidate{{Type: domain.MentionTypeUser, ID: msgTestUserID, Label: "Alice", WillBeAdded: true}},
 		Channels: []domain.MentionCandidate{{Type: domain.MentionTypeChannel, ID: testChannelID, Label: "geral"}},
 	}}
 	h := httpapi.NewMessageHandler(&fakeWorkspaceResolver{workspace: activeWorkspace()}, &fakeMessageProvider{}, mentions)
@@ -1237,6 +1237,10 @@ func TestMessageHandler_SearchMentions_ReturnsAuthorizedCandidates(t *testing.T)
 	body := decodeBody(t, rec)["data"].(map[string]any)
 	if len(body["users"].([]any)) != 1 || len(body["channels"].([]any)) != 1 {
 		t.Fatalf("unexpected candidates: %v", body)
+	}
+	user := body["users"].([]any)[0].(map[string]any)
+	if user["will_be_added"] != true {
+		t.Fatalf("outside member marker = %v, want true", user["will_be_added"])
 	}
 }
 

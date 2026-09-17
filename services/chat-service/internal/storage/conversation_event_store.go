@@ -133,6 +133,19 @@ func resolveConversationEventTargetUsers(
 // message can never arrive here carrying a payload.
 func decodeConversationEvent(message *domain.Message, payload []byte) error {
 	if message.EventType == "" {
+		// CreateMessage projects the ID of an atomically-created membership
+		// event through this otherwise-empty JSON column. Persisted user messages
+		// cannot carry event_payload (database CHECK), so this path is limited to
+		// that create-result metadata and is cleared by the caller immediately.
+		if len(payload) > 0 {
+			var metadata struct {
+				CreatedConversationEventID string `json:"_created_conversation_event_id"`
+			}
+			if err := json.Unmarshal(payload, &metadata); err != nil {
+				return fmt.Errorf("decode create message metadata: %w", err)
+			}
+			message.EventPayload.CreatedConversationEventID = metadata.CreatedConversationEventID
+		}
 		return nil
 	}
 	if !domain.ValidConversationEventType(domain.ConversationEventType(message.EventType)) {

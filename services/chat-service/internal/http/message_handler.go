@@ -424,9 +424,10 @@ type messageSecuritySnapshotsData struct {
 }
 
 type mentionJSON struct {
-	Type  string `json:"type"`
-	ID    string `json:"id"`
-	Label string `json:"label"`
+	Type        string `json:"type"`
+	ID          string `json:"id"`
+	Label       string `json:"label"`
+	WillBeAdded bool   `json:"will_be_added,omitempty"`
 }
 
 type searchMentionsResponseData struct {
@@ -1916,9 +1917,10 @@ func mapMentions(candidates []domain.MentionCandidate) []mentionJSON {
 	out := make([]mentionJSON, 0, len(candidates))
 	for _, candidate := range candidates {
 		out = append(out, mentionJSON{
-			Type:  string(candidate.Type),
-			ID:    candidate.ID,
-			Label: candidate.Label,
+			Type:        string(candidate.Type),
+			ID:          candidate.ID,
+			Label:       candidate.Label,
+			WillBeAdded: candidate.WillBeAdded,
 		})
 	}
 	return out
@@ -1928,6 +1930,8 @@ func mapMentions(candidates []domain.MentionCandidate) []mentionJSON {
 // Keeps error messages generic to avoid leaking internal details.
 func mapServiceError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, domain.ErrMentionNotEligible):
+		httputil.WriteError(w, http.StatusUnprocessableEntity, "mention_not_eligible", "mention is not eligible for this conversation")
 	case errors.Is(err, domain.ErrInvalidInput):
 		httputil.WriteError(w, http.StatusBadRequest, httputil.ErrCodeBadRequest, "invalid request")
 	case errors.Is(err, domain.ErrInvalidCursor):

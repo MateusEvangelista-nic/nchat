@@ -2372,6 +2372,21 @@ describe("fetchMentionCandidates", () => {
     ]);
   });
 
+  it("preserves the server-authorized will-be-added marker", async () => {
+    mockAuthFetch.mockResolvedValue({
+      data: {
+        users: [{ type: "user", id: "user-2", label: "Juliane", will_be_added: true }],
+        channels: [],
+      },
+    });
+
+    await expect(
+      fetchMentionCandidates({ kind: "channel", id: "channel-1" }, "juli"),
+    ).resolves.toEqual([
+      { mentionType: "user", id: "user-2", label: "Juliane", willBeAdded: true },
+    ]);
+  });
+
   it("drops channel candidates even when the backend still returns them — mentions are for people only", async () => {
     mockAuthFetch.mockResolvedValue({
       data: {

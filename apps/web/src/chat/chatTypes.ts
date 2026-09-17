@@ -370,6 +370,8 @@ export interface MentionCandidate {
   mentionType: "user" | "channel" | "all";
   id: string;
   label: string;
+  /** The server has authorized adding this workspace member when the message is sent. */
+  willBeAdded?: boolean;
 }
 
 export interface MentionTarget {

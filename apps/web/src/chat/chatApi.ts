@@ -1072,6 +1072,7 @@ interface MentionCandidateResponse {
   type: "user" | "channel";
   id: string;
   label: string;
+  will_be_added?: boolean;
 }
 
 interface MentionEnvelope {
@@ -1087,7 +1088,8 @@ function isMentionCandidateResponse(value: unknown): value is MentionCandidateRe
   return (
     (candidate.type === "user" || candidate.type === "channel") &&
     typeof candidate.id === "string" &&
-    typeof candidate.label === "string"
+    typeof candidate.label === "string" &&
+    (candidate.will_be_added === undefined || typeof candidate.will_be_added === "boolean")
   );
 }
 
@@ -1600,6 +1602,7 @@ export async function fetchMentionCandidates(
       mentionType: "user" as const,
       id: candidate.id,
       label: candidate.label,
+      ...(candidate.will_be_added ? { willBeAdded: true } : {}),
     }));
   if (target.kind === "dm") return users;
   return [
