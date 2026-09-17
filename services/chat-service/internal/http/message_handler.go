@@ -214,10 +214,15 @@ func (h *MessageHandler) Ready() bool {
 // messageJSON is the outbound representation of a single message.
 // body_text is suppressed for deleted messages; is_removed is set instead.
 type messageJSON struct {
-	ID                string `json:"id"`
-	SenderID          string `json:"sender_id"`
-	SenderDisplayName string `json:"sender_display_name,omitempty"`
-	SenderEmail       string `json:"sender_email,omitempty"`
+	ID string `json:"id"`
+	// CreatedConversationEventID identifies the membership event created in the
+	// same transaction as this message. It is returned only by that create
+	// operation, allowing the author to reconcile the event without relying on
+	// its own WebSocket echo.
+	CreatedConversationEventID string `json:"created_conversation_event_id,omitempty"`
+	SenderID                   string `json:"sender_id"`
+	SenderDisplayName          string `json:"sender_display_name,omitempty"`
+	SenderEmail                string `json:"sender_email,omitempty"`
 	// SenderAvatarURL is the sender's auth.users.avatar_url, straight from the
 	// same JOIN as SenderDisplayName/SenderEmail (issue #495). Omitted when the
 	// sender has none set. Same-origin/scheme safety is a render-time client
@@ -643,26 +648,27 @@ func mapToMessageJSON(m domain.Message) messageJSON {
 		editedAt = &m.EditedAt
 	}
 	j := messageJSON{
-		ID:                      m.ID,
-		SenderID:                m.SenderID,
-		SenderDisplayName:       m.SenderDisplayName,
-		SenderEmail:             m.SenderEmail,
-		SenderAvatarURL:         m.SenderAvatarURL,
-		Kind:                    string(m.Kind),
-		BodyFormat:              string(m.BodyFormat),
-		Status:                  string(m.Status),
-		Priority:                string(m.Priority.OrStandard()),
-		AcknowledgementRequired: m.AcknowledgementRequired,
-		PersistentNotifications: m.PersistentNotifications,
-		LinkSafetyState:         string(m.LinkSafety),
-		CreatedAt:               m.CreatedAt,
-		UpdatedAt:               m.UpdatedAt,
-		EditedAt:                editedAt,
-		EditCount:               m.EditCount,
-		IsEdited:                m.EditCount > 0,
-		Reactions:               make([]reactionJSON, len(m.Reactions)),
-		IsFavorited:             m.IsFavorited,
-		IsForwarded:             m.ForwardedFromMessageID != "",
+		ID:                         m.ID,
+		CreatedConversationEventID: m.CreatedConversationEventID,
+		SenderID:                   m.SenderID,
+		SenderDisplayName:          m.SenderDisplayName,
+		SenderEmail:                m.SenderEmail,
+		SenderAvatarURL:            m.SenderAvatarURL,
+		Kind:                       string(m.Kind),
+		BodyFormat:                 string(m.BodyFormat),
+		Status:                     string(m.Status),
+		Priority:                   string(m.Priority.OrStandard()),
+		AcknowledgementRequired:    m.AcknowledgementRequired,
+		PersistentNotifications:    m.PersistentNotifications,
+		LinkSafetyState:            string(m.LinkSafety),
+		CreatedAt:                  m.CreatedAt,
+		UpdatedAt:                  m.UpdatedAt,
+		EditedAt:                   editedAt,
+		EditCount:                  m.EditCount,
+		IsEdited:                   m.EditCount > 0,
+		Reactions:                  make([]reactionJSON, len(m.Reactions)),
+		IsFavorited:                m.IsFavorited,
+		IsForwarded:                m.ForwardedFromMessageID != "",
 	}
 	for i, reaction := range m.Reactions {
 		j.Reactions[i] = reactionJSON{

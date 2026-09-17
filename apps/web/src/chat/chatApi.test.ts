@@ -2537,10 +2537,18 @@ describe("postDMMessage", () => {
   });
 
   it("returns mapped Message from response", async () => {
-    mockAuthFetch.mockResolvedValue(msgEnvelope(msgRaw({ body_text: "Oi!" })));
+    mockAuthFetch.mockResolvedValue(
+      msgEnvelope(
+        msgRaw({
+          body_text: "Oi!",
+          created_conversation_event_id: "event-member-added",
+        }),
+      ),
+    );
     const msg = await postDMMessage("dm-juliane", "Oi!");
     expect(msg.bodyText).toBe("Oi!");
     expect(msg.senderId).toBe("user-abc");
+    expect(msg.createdConversationEventId).toBe("event-member-added");
   });
 });
 

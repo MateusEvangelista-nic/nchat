@@ -415,7 +415,8 @@ type Message struct {
 	// CreatedConversationEventID is transient metadata returned only by the
 	// atomic create statement when that same statement also added mentioned
 	// members. The service uses it to announce the persisted system message
-	// after commit; HTTP projections never serialize it.
+	// after commit, and the create response exposes only this ID so the author
+	// can reconcile that same event when its own realtime echo is unavailable.
 	CreatedConversationEventID string
 }
 

@@ -911,6 +911,8 @@ export function fetchAllowedReactionEmojis(): Promise<string[]> {
 
 interface MessageResponse {
   id: string;
+  /** Event atomically created as a side effect of this message, on create responses only. */
+  created_conversation_event_id?: unknown;
   sender_id: string;
   sender_display_name?: string;
   sender_email?: string;
@@ -1244,6 +1246,10 @@ function mapMessage(r: MessageResponse): Message {
   const isRemoved = r.is_removed === true || r.status === "deleted" || Boolean(r.deleted_at);
   return {
     id: r.id,
+    createdConversationEventId:
+      typeof r.created_conversation_event_id === "string" && r.created_conversation_event_id
+        ? r.created_conversation_event_id
+        : undefined,
     kind: (r.kind === "system" ? "system" : "user") as Message["kind"],
     ...mapMessageAuthor(r),
     ...mapConversationEvent(r),

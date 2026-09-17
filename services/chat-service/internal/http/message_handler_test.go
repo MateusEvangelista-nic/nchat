@@ -1838,6 +1838,7 @@ func TestMessageHandler_CreateDMMessage_Success(t *testing.T) {
 	dmMsg := testMessage()
 	dmMsg.ChannelID = ""
 	dmMsg.DMConversationID = testConversationID
+	dmMsg.CreatedConversationEventID = "event-member-added"
 	msgs := &fakeMessageProvider{createDMMsg: dmMsg}
 	h := makeHandlerWithUser(&fakeWorkspaceResolver{workspace: activeWorkspace()}, msgs)
 	rec := httptest.NewRecorder()
@@ -1847,6 +1848,17 @@ func TestMessageHandler_CreateDMMessage_Success(t *testing.T) {
 	h.CreateDMMessage(rec, r)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d — body: %s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		Data struct {
+			CreatedConversationEventID string `json:"created_conversation_event_id"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Data.CreatedConversationEventID != dmMsg.CreatedConversationEventID {
+		t.Fatalf("expected created event id %q, got %q", dmMsg.CreatedConversationEventID, body.Data.CreatedConversationEventID)
 	}
 }
 

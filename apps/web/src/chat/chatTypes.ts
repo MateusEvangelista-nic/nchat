@@ -425,6 +425,8 @@ export interface ConversationEventPayload {
 
 export interface Message {
   id: string;
+  /** Server-created side-effect event to reconcile after this message is posted. */
+  createdConversationEventId?: string;
   senderId: string;
   senderDisplayName: string;
   senderEmail: string;
