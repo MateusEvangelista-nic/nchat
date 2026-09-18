@@ -15,6 +15,15 @@ describe("ShortcutManager", () => {
     );
   });
 
+  it("maps horizontal keys to conversation history instead of sidebar order", () => {
+    expect(resolveShortcut({ key: "ArrowLeft", altKey: true }, ["global"])).toBe(
+      "conversation.historyBack",
+    );
+    expect(resolveShortcut({ key: "ArrowRight", altKey: true }, ["global"])).toBe(
+      "conversation.historyForward",
+    );
+  });
+
   it("leaves native editing shortcuts alone inside editable controls", () => {
     for (const tagName of ["input", "textarea", "select"]) {
       expect(shouldIgnoreShortcutTarget(document.createElement(tagName))).toBe(true);

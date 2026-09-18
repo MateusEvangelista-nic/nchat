@@ -2,13 +2,17 @@ export type CommandId =
   | "search.open"
   | "shortcuts.open"
   | "conversation.previous"
-  | "conversation.next";
+  | "conversation.next"
+  | "conversation.historyBack"
+  | "conversation.historyForward";
 
 export interface CommandActions {
   openSearch: () => void;
   openShortcutHelp: () => void;
   previousConversation: () => void;
   nextConversation: () => void;
+  historyBack: () => void;
+  historyForward: () => void;
 }
 
 export interface CommandRegistry {
@@ -22,6 +26,8 @@ export function createCommandRegistry(actions: CommandActions): CommandRegistry 
     "shortcuts.open": actions.openShortcutHelp,
     "conversation.previous": actions.previousConversation,
     "conversation.next": actions.nextConversation,
+    "conversation.historyBack": actions.historyBack,
+    "conversation.historyForward": actions.historyForward,
   };
 
   return { execute: (command) => commands[command]() };

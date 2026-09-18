@@ -313,6 +313,8 @@ export default function AppShell() {
         openShortcutHelp: () => setShortcutHelpOpen(true),
         previousConversation: () => navigateSidebarRelative(-1),
         nextConversation: () => navigateSidebarRelative(1),
+        historyBack: () => navigate(-1),
+        historyForward: () => navigate(1),
       }),
     [navigateSidebarRelative, openSearch],
   );

@@ -10,6 +10,8 @@ describe("CommandRegistry", () => {
       openShortcutHelp: vi.fn(),
       previousConversation: vi.fn(),
       nextConversation: vi.fn(),
+      historyBack: vi.fn(),
+      historyForward: vi.fn(),
     });
 
     registry.execute("search.open");

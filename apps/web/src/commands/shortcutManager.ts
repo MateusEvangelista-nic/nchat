@@ -41,6 +41,18 @@ const shortcuts: ShortcutDefinition[] = [
     matches: (event) =>
       event.altKey === true && !event.ctrlKey && !event.metaKey && event.key === "ArrowDown",
   },
+  {
+    command: "conversation.historyBack",
+    scope: "global",
+    matches: (event) =>
+      event.altKey === true && !event.ctrlKey && !event.metaKey && event.key === "ArrowLeft",
+  },
+  {
+    command: "conversation.historyForward",
+    scope: "global",
+    matches: (event) =>
+      event.altKey === true && !event.ctrlKey && !event.metaKey && event.key === "ArrowRight",
+  },
 ];
 
 export function resolveShortcut(
@@ -53,9 +65,15 @@ export function resolveShortcut(
   );
 }
 
-/** Conversation navigation remains available while the composer has focus. */
+/** Commands without native editor semantics remain available while the composer has focus. */
 export function allowsShortcutInEditableTarget(command: CommandId): boolean {
-  return command === "conversation.previous" || command === "conversation.next";
+  return (
+    command === "shortcuts.open" ||
+    command === "conversation.previous" ||
+    command === "conversation.next" ||
+    command === "conversation.historyBack" ||
+    command === "conversation.historyForward"
+  );
 }
 
 /** Input-like elements retain native editing and browser shortcuts by default. */
