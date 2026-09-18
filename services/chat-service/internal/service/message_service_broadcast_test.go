@@ -18,6 +18,42 @@ type fakePublisher struct {
 	mu      sync.Mutex
 	calls   []publishCall
 	updates []publishCall
+	events  []conversationEventCall
+}
+
+type conversationEventCall struct {
+	workspaceID string
+	targetType  string
+	targetID    string
+	messageID   string
+}
+
+func (p *fakePublisher) PublishConversationEvent(_ context.Context, workspaceID, targetType, targetID, messageID string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.events = append(p.events, conversationEventCall{
+		workspaceID: workspaceID, targetType: targetType, targetID: targetID, messageID: messageID,
+	})
+}
+
+func (p *fakePublisher) eventSnapshot() []conversationEventCall {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append([]conversationEventCall(nil), p.events...)
+}
+
+func waitForConversationEvents(t *testing.T, pub *fakePublisher, want int) []conversationEventCall {
+	t.Helper()
+	deadline := time.Now().Add(500 * time.Millisecond)
+	for time.Now().Before(deadline) {
+		events := pub.eventSnapshot()
+		if len(events) >= want {
+			return events
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	t.Fatalf("expected %d conversation events, got %d", want, len(pub.eventSnapshot()))
+	return nil
 }
 
 func (p *fakePublisher) PublishMessageUpdated(ctx context.Context, workspaceID, targetType, targetID string, msg domain.Message) {
@@ -305,7 +341,7 @@ func TestMessageService_CreateChannelMessage_BroadcastsAfterPersist(t *testing.T
 	persistedMsg := domain.Message{
 		ID: "msg-broadcast", WorkspaceID: "ws-1", ChannelID: "ch-1",
 		SenderID: user1, Kind: domain.MessageKindUser,
-		Status: domain.MessageStatusActive,
+		Status: domain.MessageStatusActive, CreatedConversationEventID: "event-member-added",
 	}
 	msgs := &fakeMessageStore{createdMessage: persistedMsg}
 	pub := &fakePublisher{}
@@ -323,6 +359,10 @@ func TestMessageService_CreateChannelMessage_BroadcastsAfterPersist(t *testing.T
 	got := calls[0]
 	if got.workspaceID != "ws-1" || got.targetType != "channel" || got.targetID != "ch-1" || got.msg.ID != "msg-broadcast" {
 		t.Errorf("unexpected publish call: %+v", got)
+	}
+	event := waitForConversationEvents(t, pub, 1)[0]
+	if event.workspaceID != "ws-1" || event.targetType != "channel" || event.targetID != "ch-1" || event.messageID != "event-member-added" {
+		t.Errorf("unexpected conversation event publish: %+v", event)
 	}
 }
 
