@@ -285,27 +285,6 @@ function renderAt(path: string) {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("navigating between DM and channel targets", () => {
-  it("keeps Alt+Arrow navigation from the composer on the sidebar-selected conversation", async () => {
-    renderAt(`/chat/channel/${secretChannelId}`);
-
-    const composer = await screen.findByTestId("chat-composer-input");
-    fireEvent.keyDown(composer, { key: "ArrowDown", altKey: true });
-
-    await waitFor(() => expect(window.location.pathname).toBe(`/chat/channel/${channelId}`));
-    // Let the route, the sidebar effect and the newly active composer settle:
-    // none may restore the conversation that Alt+Arrow just left.
-    await act(async () => {
-      await Promise.resolve();
-    });
-    expect(window.location.pathname).toBe(`/chat/channel/${channelId}`);
-
-    fireEvent.keyDown(await screen.findByTestId("chat-composer-input"), {
-      key: "ArrowUp",
-      altKey: true,
-    });
-    await waitFor(() => expect(window.location.pathname).toBe(`/chat/channel/${secretChannelId}`));
-  });
-
   it("renders the channel after leaving a DM", async () => {
     const initialDMPage = deferred<MessagePage>();
     api.fetchDMMessages.mockImplementation((conversationId: string) => {

@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -1308,7 +1309,7 @@ export default function ChatSidebar({
     selectConversation({ kind: "dm", id });
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!onNavigateRelativeChange) return;
     onNavigateRelativeChange((direction) => {
       const current = activeChannelId

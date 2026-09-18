@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
 import type { CommandRegistry } from "./commandRegistry";
 import {
@@ -10,7 +10,7 @@ import {
 
 /** Owns the sole document keydown listener for registered application shortcuts. */
 export function useShortcutManager(registry: CommandRegistry, scopes: readonly ShortcutScope[]) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.defaultPrevented || event.repeat) return;
       const command = resolveShortcut(event, scopes);

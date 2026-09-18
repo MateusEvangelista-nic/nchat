@@ -246,11 +246,9 @@ export default function AppShell() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
-  const [navigateSidebarRelative, setNavigateSidebarRelative] = useState<
-    (direction: -1 | 1) => void
-  >(() => () => {});
+  const navigateSidebarRelativeRef = useRef<(direction: -1 | 1) => void>(() => {});
   const setSidebarNavigation = useCallback((handler: (direction: -1 | 1) => void) => {
-    setNavigateSidebarRelative(() => handler);
+    navigateSidebarRelativeRef.current = handler;
   }, []);
   // The route is part of the panel's identity, not something an effect syncs to
   // it: navigating away closes the panel because the value stored alongside it
@@ -311,12 +309,12 @@ export default function AppShell() {
       createCommandRegistry({
         openSearch,
         openShortcutHelp: () => setShortcutHelpOpen(true),
-        previousConversation: () => navigateSidebarRelative(-1),
-        nextConversation: () => navigateSidebarRelative(1),
+        previousConversation: () => navigateSidebarRelativeRef.current(-1),
+        nextConversation: () => navigateSidebarRelativeRef.current(1),
         historyBack: () => navigate(-1),
         historyForward: () => navigate(1),
       }),
-    [navigateSidebarRelative, openSearch],
+    [navigate, openSearch],
   );
   useShortcutManager(commandRegistry, GLOBAL_SHORTCUT_SCOPE);
   const openSidebarDetails = useCallback(
