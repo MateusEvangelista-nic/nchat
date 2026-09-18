@@ -246,6 +246,12 @@ export default function AppShell() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
+  const [navigateSidebarRelative, setNavigateSidebarRelative] = useState<
+    (direction: -1 | 1) => void
+  >(() => () => {});
+  const setSidebarNavigation = useCallback((handler: (direction: -1 | 1) => void) => {
+    setNavigateSidebarRelative(() => handler);
+  }, []);
   // The route is part of the panel's identity, not something an effect syncs to
   // it: navigating away closes the panel because the value stored alongside it
   // stops matching, with no extra render pass. The panel is a peek at one
@@ -300,38 +306,15 @@ export default function AppShell() {
     [dismissInAppAlert, navigate],
   );
   const openSearch = useCallback(() => navigate("/chat/search"), [navigate]);
-  const navigateConversation = useCallback(
-    (direction: -1 | 1) => {
-      const conversations = [
-        ...channels.map((conversation) => ({ kind: "channel" as const, id: conversation.id })),
-        ...dms.map((conversation) => ({ kind: "dm" as const, id: conversation.id })),
-      ];
-      if (!conversations.length) return;
-      const currentIndex = conversations.findIndex(
-        (conversation) =>
-          pathname === `/chat/${conversation.kind}/${encodeURIComponent(conversation.id)}`,
-      );
-      const nextIndex =
-        currentIndex < 0
-          ? direction > 0
-            ? 0
-            : conversations.length - 1
-          : currentIndex + direction;
-      const target = conversations[nextIndex];
-      if (!target) return;
-      navigate(`/chat/${target.kind}/${encodeURIComponent(target.id)}`);
-    },
-    [channels, dms, navigate, pathname],
-  );
   const commandRegistry = useMemo(
     () =>
       createCommandRegistry({
         openSearch,
         openShortcutHelp: () => setShortcutHelpOpen(true),
-        previousConversation: () => navigateConversation(-1),
-        nextConversation: () => navigateConversation(1),
+        previousConversation: () => navigateSidebarRelative(-1),
+        nextConversation: () => navigateSidebarRelative(1),
       }),
-    [navigateConversation, openSearch],
+    [navigateSidebarRelative, openSearch],
   );
   useShortcutManager(commandRegistry, GLOBAL_SHORTCUT_SCOPE);
   const openSidebarDetails = useCallback(
@@ -390,6 +373,7 @@ export default function AppShell() {
         leaveConversation={leaveConversation}
         onOpenDetails={openSidebarDetails}
         onOpenSearch={() => commandRegistry.execute("search.open")}
+        onNavigateRelativeChange={setSidebarNavigation}
         draftSummaries={drafts.summaries}
       />
       {/* Pointer half of "the background is not interactive while the drawer is

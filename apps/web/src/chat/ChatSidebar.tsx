@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 
 import "./ChatSidebar.css";
@@ -21,6 +29,10 @@ import PresenceDot from "./PresenceDot";
 import { presenceLabel, presenceTargetKey, usePresence, type PresenceState } from "./presence";
 import SidebarUserMenu from "./SidebarUserMenu";
 import { sortByActivity } from "./sidebarOrder";
+import {
+  adjacentSidebarConversation,
+  type SidebarConversationTarget,
+} from "./sidebarConversationNavigation";
 import { useSidebarSectionPreferences } from "./sidebarSectionPreferences";
 import type { SidebarState } from "./useChatSidebar";
 import type { DraftSummary } from "./useConversationDrafts";
@@ -1056,6 +1068,8 @@ interface ChatSidebarProps {
   ) => void;
   /** The shell-owned search action, shared by the sidebar button and shortcut command. */
   onOpenSearch?: () => void;
+  /** Publishes this sidebar's visual-row selection flow to the command layer. */
+  onNavigateRelativeChange?: (navigate: (direction: -1 | 1) => void) => void;
   /**
    * Which conversations have a draft, and a coarse summary of what kind
    * (issue #769) — keyed the same way as everywhere else in the chat
@@ -1095,6 +1109,7 @@ export default function ChatSidebar({
   leaveConversation,
   onOpenDetails,
   onOpenSearch,
+  onNavigateRelativeChange,
   draftSummaries = EMPTY_DRAFT_SUMMARIES,
 }: ChatSidebarProps) {
   const navigate = useNavigate();
@@ -1253,13 +1268,68 @@ export default function ChatSidebar({
     !sectionPrefs.groups.collapsed || (groupsShowUnreadOnly && unreadGroups.length > 0);
   const visibleGroups = groupsShowUnreadOnly ? unreadGroups : orderedGroups;
 
+  const visualConversationOrder = useMemo<SidebarConversationTarget[]>(
+    () => [
+      ...(channelsSectionVisible
+        ? visibleChannelGroups.flatMap(({ category, channels: categoryChannels }) =>
+            collapsedCategories[category.id ?? "uncategorized"]
+              ? []
+              : categoryChannels.map(({ id }) => ({ kind: "channel" as const, id })),
+          )
+        : []),
+      ...(directsSectionVisible
+        ? visibleDirects.map(({ id }) => ({ kind: "dm" as const, id }))
+        : []),
+      ...(groupsSectionVisible ? visibleGroups.map(({ id }) => ({ kind: "dm" as const, id })) : []),
+    ],
+    [
+      channelsSectionVisible,
+      collapsedCategories,
+      directsSectionVisible,
+      groupsSectionVisible,
+      visibleChannelGroups,
+      visibleDirects,
+      visibleGroups,
+    ],
+  );
+
+  const selectConversation = useCallback(
+    (target: SidebarConversationTarget) => {
+      navigate(`/chat/${target.kind}/${encodeURIComponent(target.id)}`);
+    },
+    [navigate],
+  );
+
   function handleChannelSelect(id: string) {
-    navigate(`/chat/channel/${encodeURIComponent(id)}`);
+    selectConversation({ kind: "channel", id });
   }
 
   function handleDMSelect(id: string) {
-    navigate(`/chat/dm/${encodeURIComponent(id)}`);
+    selectConversation({ kind: "dm", id });
   }
+
+  useEffect(() => {
+    if (!onNavigateRelativeChange) return;
+    onNavigateRelativeChange((direction) => {
+      const current = activeChannelId
+        ? { kind: "channel" as const, id: activeChannelId }
+        : activeDMId
+          ? { kind: "dm" as const, id: activeDMId }
+          : null;
+      if (!current) return;
+      const target = adjacentSidebarConversation(visualConversationOrder, current, direction);
+      if (target) selectConversation(target);
+    });
+    return () => {
+      onNavigateRelativeChange(() => {});
+    };
+  }, [
+    activeChannelId,
+    activeDMId,
+    onNavigateRelativeChange,
+    selectConversation,
+    visualConversationOrder,
+  ]);
 
   function handlePin(kind: "channel" | "dm", id: string, pinned: boolean) {
     if (!setPinned) return;

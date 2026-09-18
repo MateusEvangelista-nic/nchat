@@ -53,6 +53,11 @@ export function resolveShortcut(
   );
 }
 
+/** Conversation navigation remains available while the composer has focus. */
+export function allowsShortcutInEditableTarget(command: CommandId): boolean {
+  return command === "conversation.previous" || command === "conversation.next";
+}
+
 /** Input-like elements retain native editing and browser shortcuts by default. */
 export function shouldIgnoreShortcutTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
