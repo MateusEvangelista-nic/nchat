@@ -1054,6 +1054,8 @@ interface ChatSidebarProps {
     targetId: string,
     trigger: HTMLButtonElement | null,
   ) => void;
+  /** The shell-owned search action, shared by the sidebar button and shortcut command. */
+  onOpenSearch?: () => void;
   /**
    * Which conversations have a draft, and a coarse summary of what kind
    * (issue #769) — keyed the same way as everywhere else in the chat
@@ -1092,6 +1094,7 @@ export default function ChatSidebar({
   setMuted,
   leaveConversation,
   onOpenDetails,
+  onOpenSearch,
   draftSummaries = EMPTY_DRAFT_SUMMARIES,
 }: ChatSidebarProps) {
   const navigate = useNavigate();
@@ -1476,10 +1479,15 @@ export default function ChatSidebar({
 
         {/* ── Footer ── */}
         <div className="chat-sidebar__footer">
-          <Link to="/chat/search" className="chat-sidebar__footer-item" aria-label="Buscar">
+          <button
+            type="button"
+            className="chat-sidebar__footer-item"
+            aria-label="Buscar"
+            onClick={onOpenSearch}
+          >
             <IconSearch />
             <span>Buscar</span>
-          </Link>
+          </button>
           <Link
             to="/chat/favorites"
             className="chat-sidebar__footer-item"

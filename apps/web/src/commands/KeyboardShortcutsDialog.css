@@ -1,0 +1,64 @@
+.keyboard-shortcuts__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 430;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(22, 18, 31, 0.58);
+}
+
+.keyboard-shortcuts {
+  width: min(420px, 100%);
+  padding: 22px 24px;
+  border: 1px solid #e8e3f0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 24px 64px rgba(22, 18, 31, 0.24);
+  color: #16121f;
+}
+
+.keyboard-shortcuts__header,
+.keyboard-shortcuts dl > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.keyboard-shortcuts__header h2,
+.keyboard-shortcuts p,
+.keyboard-shortcuts dl {
+  margin: 0;
+}
+.keyboard-shortcuts p {
+  margin-top: 8px;
+  color: #7c7390;
+}
+.keyboard-shortcuts dl {
+  margin-top: 20px;
+}
+.keyboard-shortcuts dl > div + div {
+  margin-top: 12px;
+}
+.keyboard-shortcuts dd {
+  margin: 0;
+}
+.keyboard-shortcuts kbd {
+  padding: 3px 7px;
+  border: 1px solid #d8d1e4;
+  border-radius: 5px;
+  background: #f6f4fa;
+  font: inherit;
+}
+.keyboard-shortcuts button {
+  border: 0;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.keyboard-shortcuts button:focus-visible {
+  outline: 2px solid #6d28d9;
+  outline-offset: 2px;
+}
