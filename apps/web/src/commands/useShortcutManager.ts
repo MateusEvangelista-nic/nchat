@@ -21,7 +21,10 @@ export function useShortcutManager(registry: CommandRegistry, scopes: readonly S
       registry.execute(command);
     }
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    // Registered commands need to be resolved before rich editors get a
+    // chance to consume the key in their bubble handlers. Native editor keys
+    // such as Ctrl/Cmd+Z have no matching command and are left untouched.
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
   }, [registry, scopes]);
 }

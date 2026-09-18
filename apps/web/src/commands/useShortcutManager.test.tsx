@@ -42,7 +42,14 @@ function ShortcutHarness({ registry }: { registry: ReturnType<typeof createComma
   return (
     <>
       <textarea aria-label="Composer" />
-      <div aria-label="Rich composer" contentEditable />
+      <div
+        aria-label="Rich composer"
+        contentEditable
+        // ProseMirror may consume Alt+Arrow while maintaining its selection.
+        // The command listener must still receive the registered shortcut
+        // before editor-level bubble handlers run.
+        onKeyDown={(event) => event.preventDefault()}
+      />
     </>
   );
 }
