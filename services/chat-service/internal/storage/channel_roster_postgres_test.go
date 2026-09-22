@@ -56,7 +56,7 @@ func TestChannelMembershipContractPostgreSQL_RosterListsMembersThePresencePrevie
 		t.Fatalf("the presence preview must be empty with nobody online, got %+v", preview.Online)
 	}
 
-	roster, err := store.ListChannelMemberRoster(ctx, mcWorkspace, mcPrivate, domain.MaxChannelDetailsMembers)
+	roster, err := store.ListChannelMemberRoster(ctx, mcWorkspace, mcPrivate, "", domain.MaxChannelDetailsMembers)
 	if err != nil {
 		t.Fatalf("ListChannelMemberRoster: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestChannelMembershipContractPostgreSQL_RosterExcludesImplicitPublicReaders
 		t.Fatal("fixture precondition: that reader has no chat.channel_members row")
 	}
 
-	roster, err := store.ListChannelMemberRoster(ctx, mcWorkspace, mcPublic, domain.MaxChannelDetailsMembers)
+	roster, err := store.ListChannelMemberRoster(ctx, mcWorkspace, mcPublic, "", domain.MaxChannelDetailsMembers)
 	if err != nil {
 		t.Fatalf("ListChannelMemberRoster: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestChannelMembershipContractPostgreSQL_RosterDropsInactiveIdentitiesAndFor
 		t.Fatalf("deactivate workspace membership: %v", err)
 	}
 
-	roster, err := store.ListChannelMemberRoster(ctx, mcWorkspace, mcPrivate, domain.MaxChannelDetailsMembers)
+	roster, err := store.ListChannelMemberRoster(ctx, mcWorkspace, mcPrivate, "", domain.MaxChannelDetailsMembers)
 	if err != nil {
 		t.Fatalf("ListChannelMemberRoster: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestChannelMembershipContractPostgreSQL_RosterDropsInactiveIdentitiesAndFor
 
 	// The same channel, asked for under another workspace: the join on
 	// chat.channels is what makes this empty rather than a tenant leak.
-	foreign, err := store.ListChannelMemberRoster(ctx, mcGeneral, mcPrivate, domain.MaxChannelDetailsMembers)
+	foreign, err := store.ListChannelMemberRoster(ctx, mcGeneral, mcPrivate, "", domain.MaxChannelDetailsMembers)
 	if err != nil {
 		t.Fatalf("ListChannelMemberRoster (foreign workspace): %v", err)
 	}
@@ -160,7 +160,7 @@ func TestChannelMembershipContractPostgreSQL_RosterCapsThePageWithoutTruncatingT
 		}
 	}
 
-	roster, err := store.ListChannelMemberRoster(ctx, mcWorkspace, mcPrivate, 2)
+	roster, err := store.ListChannelMemberRoster(ctx, mcWorkspace, mcPrivate, "", 2)
 	if err != nil {
 		t.Fatalf("ListChannelMemberRoster: %v", err)
 	}
