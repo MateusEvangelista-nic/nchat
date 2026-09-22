@@ -77,27 +77,24 @@ func TestChannelMembershipContractPostgreSQL_RosterListsMembersThePresencePrevie
 	}
 }
 
-// A public channel's implicit readers are not members and must not be offered
-// for removal: there is no row to delete, and a button that refuses is worse
-// than no button. The divergence itself belongs to issue #883; what this pins
-// is that the roster reads membership and never visibility.
-func TestChannelMembershipContractPostgreSQL_RosterExcludesImplicitPublicReaders(t *testing.T) {
+// Public-channel membership is materialized for every eligible workspace role,
+// so the authoritative roster includes those readers even while they are
+// offline. Guests remain absent until explicitly invited.
+func TestChannelMembershipContractPostgreSQL_RosterIncludesEligiblePublicMembers(t *testing.T) {
 	pool, ctx := membershipContractPostgres(t)
 	store := storage.NewPGXMemberStore(pool)
-
-	if !channelVisibleToUser(t, pool, ctx, mcPublic, mcMember) {
-		t.Fatal("fixture precondition: a workspace member reads a public channel")
-	}
-	if hasExplicitChannelMembership(t, pool, ctx, mcPublic, mcMember) {
-		t.Fatal("fixture precondition: that reader has no chat.channel_members row")
-	}
 
 	roster, err := store.ListChannelMemberRoster(ctx, mcWorkspace, mcPublic, "", domain.MaxChannelDetailsMembers)
 	if err != nil {
 		t.Fatalf("ListChannelMemberRoster: %v", err)
 	}
-	if len(roster.Members) != 0 || roster.TotalCount != 0 {
-		t.Fatalf("a public channel with no rows must have an empty roster, got %+v", roster)
+	want := sortedIDs(mcOwner, mcAdmin, mcModerator, mcMember)
+	assertSameIDs(t, "public roster", rosterUserIDs(t, roster), want)
+	if roster.TotalCount != len(want) {
+		t.Fatalf("TotalCount = %d, want %d", roster.TotalCount, len(want))
+	}
+	if hasExplicitChannelMembership(t, pool, ctx, mcPublic, mcGuest) {
+		t.Fatal("guest was automatically added to a public channel")
 	}
 }
 
