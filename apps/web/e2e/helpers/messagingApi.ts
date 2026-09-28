@@ -401,10 +401,12 @@ export interface ChannelDetailsFixture {
   /** Presence-filtered, capped preview — never a general roster. */
   online_members: ChannelMemberFixture[];
   /**
-   * Whether the server would let this caller add participants (issue #398).
-   * Always sent, so a spec that omits it exercises the safe default: absent
-   * reads as false and the action stays hidden.
+   * Whether the server would let this caller add members (issue #884).
+   * Kept separate from administrative management so fixtures can prove that
+   * adding a member does not grant rename, delete or removal capabilities.
    */
+  can_add_members: boolean;
+  /** Whether this caller may administer the channel (issue #398). */
   can_manage_members: boolean;
   /** Whether this caller may remove a member (issue #469). */
   can_remove_members?: boolean;
@@ -682,6 +684,9 @@ export function directProfileFixture(
  * memberCount defaults to the number of online members but is overridable,
  * because the two are independent: a channel keeps its size when nobody is
  * connected, and specs need to assert exactly that.
+ *
+ * canAddMembers defaults to false independently of management and removal,
+ * matching the client's fail-closed handling of an absent or malformed field.
  */
 export function channelDetailsFixture(
   channel: { id: string; slug: string; display_name: string; type: "public" | "private" },
@@ -689,6 +694,7 @@ export function channelDetailsFixture(
   memberCount = onlineMembers.length,
   canManageMembers = false,
   canRemoveMembers = false,
+  canAddMembers = false,
 ): ChannelDetailsFixture {
   return {
     id: channel.id,
@@ -699,6 +705,7 @@ export function channelDetailsFixture(
     member_count: memberCount,
     online_member_count: onlineMembers.length,
     online_members: onlineMembers,
+    can_add_members: canAddMembers,
     can_manage_members: canManageMembers,
     can_remove_members: canRemoveMembers,
   };
