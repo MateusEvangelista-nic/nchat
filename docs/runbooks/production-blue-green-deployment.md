@@ -675,6 +675,12 @@ database unmigratable — so the failure mode stays proven rather than remembere
 Blue is the baseline by definition; Green is the next candidate and is not
 deployed.
 
+Bootstrap runs as `nchat-prod-deployer` and requires the administrative
+provisioning to be done first — the deployer's RBAC and the lifecycle record
+(see "Who creates the record" below). It does not create the record: it checks
+for it before applying anything and stops, naming
+`bootstrap-release-state.sh`, when it is absent, unreadable or invalid.
+
 ```bash
 NCHAT_PROD_RELEASE_SHA=<40-hex commit sha> \
 NCHAT_PROD_TOPOLOGY_FILE=/secure/path/topology.env \
@@ -1342,14 +1348,14 @@ something that died half-way, and neither is a state to reason forward from.
 **Absent, empty and unreadable are three different answers.** Only the first is
 a bootstrap:
 
-| The read found                     | Meaning                         | Outcome       |
-| ---------------------------------- | ------------------------------- | ------------- |
-| no ConfigMap                       | first release in this namespace | proceed       |
-| a ConfigMap, valid                 | the recorded state              | validate, use |
-| a ConfigMap with empty `data`      | something wrote a husk          | **refuse**    |
-| a ConfigMap missing a contract key | a write that did not finish     | **refuse**    |
-| a ConfigMap with an unexpected key | not written by this pipeline    | **refuse**    |
-| the read failed                    | nothing is known                | **refuse**    |
+| The read found                     | Meaning                        | Outcome       |
+| ---------------------------------- | ------------------------------ | ------------- |
+| no ConfigMap                       | the bootstrap never created it | see below     |
+| a ConfigMap, valid                 | the recorded state             | validate, use |
+| a ConfigMap with empty `data`      | something wrote a husk         | **refuse**    |
+| a ConfigMap missing a contract key | a write that did not finish    | **refuse**    |
+| a ConfigMap with an unexpected key | not written by this pipeline   | **refuse**    |
+| the read failed                    | nothing is known               | **refuse**    |
 
 The distinction is made with `kubectl get --ignore-not-found`, which exits 0
 and prints nothing for a missing object while keeping its non-zero exit for
@@ -1363,6 +1369,79 @@ This matters most in the one case it was getting wrong: a transient read error
 used to arrive as an empty record, which read as "no rollback is reserved" —
 and from there the next release would have drained the slot that was the way
 back.
+
+#### Who creates the record, and who may write it (issue #1000)
+
+The record is **created once, by an administrator**, and from then on only
+**replaced** by `nchat-prod-deployer`. The deploy identity holds exactly this on
+ConfigMaps, and nothing else:
+
+| Request                                        | `nchat-prod-deployer` |
+| ---------------------------------------------- | --------------------- |
+| `get`/`list`/`watch` any ConfigMap             | yes (unchanged)       |
+| `get`, `patch`, `update` `nchat-release-state` | yes                   |
+| `create` any ConfigMap                         | **no**                |
+| `delete` any ConfigMap                         | **no**                |
+| `patch`/`update` any other ConfigMap           | **no**                |
+
+`create` cannot be narrowed to one name — RBAC `resourceNames` never match a
+create — so granting it would mean every ConfigMap in the namespace. Hence the
+split, and it is a split between identities:
+
+- **Administrative provisioning**, as a cluster administrator: the deployer's
+  RBAC (`infra/k8s/bootstrap/nchat-prod`) and the empty record
+  (`bootstrap-release-state.sh`). The script refuses the `nchat-prod-deployer`
+  context, and asks the API server `kubectl auth can-i create configmaps`
+  before it confirms anything: an identity that cannot create is refused there.
+  It is safe to re-run: an absent record is created with every key empty, a
+  valid one is **left exactly as it is**, and an invalid one or a failed read
+  stops it without writing — an invalid record is for a person to investigate,
+  never to reset.
+- **Everything else runs as `nchat-prod-deployer`**, `bootstrap.sh` included.
+  None of it creates the record. `bootstrap.sh` checks, before it applies
+  anything, that the record exists, can be read and is structurally valid, and
+  stops with a pointer to `bootstrap-release-state.sh` when it does not.
+
+Every lifecycle transition writes with **one** JSON Patch replacing the whole
+`data` of the existing object. It needs `patch` on that one name, replaces every
+key at once, and fails `NotFound` rather than creating a missing record; a
+transition that finds no record refuses and names the administrative command.
+
+The deployer's ServiceAccount, Role and RoleBinding live in
+`infra/k8s/bootstrap/nchat-prod`. Nothing a release renders includes them or
+the record (`make prod-bootstrap-rbac-test` checks both, and that the Role is
+the production baseline plus the one rule above). They are applied by a cluster
+administrator, never by CD.
+
+**Order, for a new namespace.** Steps 1 and 2 are the administrator's; only
+then does anything run as the deployer:
+
+```bash
+# 1. administrator: the deployer's RBAC — review exactly what changes, then apply
+kubectl diff  -k infra/k8s/bootstrap/nchat-prod
+kubectl apply -k infra/k8s/bootstrap/nchat-prod
+
+# 2. administrator: the lifecycle record, created only if it is absent
+NCHAT_PROD_CONTEXT=<administrator context> \
+  scripts/deploy/nchat-prod/bootstrap-release-state.sh
+
+# 3. only now, as nchat-prod-deployer: section 4, `make prod-blue-green-bootstrap`
+```
+
+**For the production namespace as it exists today**, steps 1 and 2 are the
+migration required before the next `CD / Prepare Production`. Afterwards,
+prove the matrix above:
+
+```bash
+SA=system:serviceaccount:nchat-prod:nchat-prod-deployer
+kubectl auth can-i patch  configmap/nchat-release-state -n nchat-prod --as=$SA  # yes
+kubectl auth can-i update configmap/nchat-release-state -n nchat-prod --as=$SA  # yes
+kubectl auth can-i create configmaps                    -n nchat-prod --as=$SA  # no
+kubectl auth can-i delete configmap/nchat-release-state -n nchat-prod --as=$SA  # no
+kubectl auth can-i patch  configmap/nchat-config        -n nchat-prod --as=$SA  # no
+```
+
+The `kubectl diff` in step 1 must show one added rule and nothing else.
 
 The cluster stays the source of truth for **where production is**. The active
 slot is always `resolve_active_slot(collect_service_slots())`, never
@@ -2052,6 +2131,47 @@ slot depends on the old shape any more, which is a statement about the future;
 the slot a rollback targets is precisely one that does depend on it. The
 pre-policy exceptions list is not honoured here either.
 
+Each migration added between the two releases is judged on its own:
+
+| The migration                                                | Rollback gate                                 |
+| ------------------------------------------------------------ | --------------------------------------------- |
+| **expand-only** — the scanner finds nothing destructive      | `[OK]`, passes on its own                     |
+| destructive, and **attested** by exact key and exact SHA-256 | `[ATTESTED]`, passes                          |
+| destructive, and not attested — contract-phase marker or not | **blocks**, with the operation and the reason |
+| destructive, and only in the forward pre-policy exceptions   | **blocks**: that list is for going forwards   |
+| missing from the checkout, or cannot be hashed               | **blocks**                                    |
+
+**Rollback attestations** (issue #1008) live in
+`scripts/ci/rollback-schema-attestations.txt`, one per line:
+
+```text
+<sha256> <domain>/<ordinal>_<name>.up.sql
+```
+
+The checksum is `sha256sum migrations/<domain>/<file> | cut -d ' ' -f 1`, the
+value `scripts/db/migrate.sh` pins in `schema_migrations`, and a comment above
+the entry records the review: what the migration takes away, why the release
+before it still works, and what would make that stop being true. They exist
+because the scanner is conservative on purpose — a CHECK constraint dropped and
+re-added wider (`chat/000052`) looks exactly like one dropped for good — and a
+person, in review, is the only one who can tell the two apart.
+
+- It names **one exact file by its exact bytes**. No wildcard, no pattern, no
+  second entry for the same key. Changing any byte of the migration invalidates
+  it.
+- It is not an operational bypass. There is no `--force`, no variable and no
+  workflow input that skips the gate; the attestation arrives through a
+  reviewed pull request like any other code, before anyone needs a rollback.
+- A malformed or ambiguous policy stops the gate on **every** rollback, expand-
+  only ones included, until it is fixed in review. An absent or unreadable
+  policy attests nothing: expand-only rollbacks still pass, anything that
+  would need an attestation blocks.
+- **An applied migration is never edited** to add a marker or a note: the
+  runner would refuse every environment that has already run it. The
+  attestation is recorded beside it, never in it.
+- It is not a contract-phase marker and does not replace one. The forward gate
+  (`make migrations-check`) never reads this file.
+
 **What it cannot see.** It reads the repository, not the database. It proves
 what the releases _contained_; it cannot see a migration applied out of band, a
 schema edited by hand, or a backfill run from a console. It is a necessary
@@ -2063,9 +2183,14 @@ When it refuses:
 ROLLBACK BLOCKED: the schema has moved past the release on the target slot.
 ```
 
-Nothing has been changed — the serving slot is untouched and the target is
-still running. **Do not run a down migration to make it pass.** Roll forward
-with a fix, or perform a deliberate database recovery with the DBA present.
+Each blocking migration is listed with its operation and why no attestation
+applied: not attested, a checksum mismatch (the file changed after review), or
+a policy that could not be read. Nothing has been changed — the serving slot is
+untouched and the target is still running. **Do not run a down migration to
+make it pass, and do not write an attestation during an incident to get a
+rollback through**: an attestation is a review of compatibility, and without
+that proof the answer is to roll forward with a fix, or perform a deliberate
+database recovery with the DBA present.
 
 ---
 
