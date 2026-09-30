@@ -25,9 +25,8 @@ import LeaveConversationDialog from "./LeaveConversationDialog";
 import RenameChannelDialog from "./RenameChannelDialog";
 import { avatarColorFor, initialsFrom } from "./messageDisplay";
 import NewConversationDialog from "./NewConversationDialog";
-import { PersonAvatarImage } from "./PersonAvatarImage";
-import PresenceDot from "./PresenceDot";
 import { presenceLabel, presenceTargetKey, usePresence, type PresenceState } from "./presence";
+import { UserAvatar } from "./UserAvatar";
 import SidebarUserMenu from "./SidebarUserMenu";
 import { sortByActivity } from "./sidebarOrder";
 import {
@@ -172,9 +171,10 @@ function IconChevronDown() {
 // ── Avatar helpers ────────────────────────────────────────────────────────────
 
 interface AvatarProps {
-  initials: string;
-  /** Optional picture. Initials are shown when absent or when loading fails. */
-  src?: string;
+  userId: string;
+  workspaceId: string;
+  displayName: string;
+  avatarUrl?: string;
   color?: string;
   /**
    * Live presence (RF-58). Absent for an avatar that stands for a conversation
@@ -187,14 +187,30 @@ interface AvatarProps {
   size?: "sm" | "md";
 }
 
-function Avatar({ initials, src, color = "purple", status, size = "sm" }: AvatarProps) {
+function Avatar({
+  userId,
+  workspaceId,
+  displayName,
+  avatarUrl,
+  color = "purple",
+  status,
+  size = "sm",
+}: AvatarProps) {
   return (
     <span
       className={`chat-sidebar__avatar chat-sidebar__avatar--${color} chat-sidebar__avatar--${size}`}
       aria-hidden="true"
     >
-      <PersonAvatarImage src={src} initials={initials} imgClassName="chat-sidebar__avatar-img" />
-      {status && <PresenceDot state={status} size={size} ringColor="var(--cs-sidebar-bg)" />}
+      <UserAvatar
+        userId={userId}
+        workspaceId={workspaceId}
+        displayName={displayName}
+        avatarUrl={avatarUrl}
+        presence={status}
+        size={size}
+        presenceRingColor="var(--cs-sidebar-bg)"
+        imageClassName="chat-sidebar__avatar-img"
+      />
     </span>
   );
 }
@@ -207,7 +223,14 @@ function GroupAvatars({ dm }: { dm: DMConversation }) {
   // (BUG #395). The group name is already on the row, so its initials come from
   // the same canonical rule the 1:1 rows use — no second rule, no empty space.
   if (!first) {
-    return <Avatar initials={initialsFrom(dm.name)} color={avatarColorFor(dm.id)} size="sm" />;
+    return (
+      <span
+        className={`chat-sidebar__avatar chat-sidebar__avatar--${avatarColorFor(dm.id)} chat-sidebar__avatar--sm`}
+        aria-hidden="true"
+      >
+        {initialsFrom(dm.name)}
+      </span>
+    );
   }
   return (
     <span className="chat-sidebar__group-avatars" aria-hidden="true">
@@ -565,6 +588,7 @@ interface DMListProps {
   labelId: string;
   emptyMessage: string;
   actions: RowActionsProps;
+  workspaceId: string;
 }
 
 /**
@@ -581,11 +605,13 @@ function DMRow({
   isActive,
   onSelect,
   actions,
+  workspaceId,
 }: {
   dm: DMConversation;
   isActive: boolean;
   onSelect: (id: string) => void;
   actions: RowActionsProps;
+  workspaceId: string;
 }) {
   const isGroup = dm.type === "group";
   const draftSummaries = useContext(DraftSummariesContext);
@@ -631,8 +657,10 @@ function DMRow({
           <GroupAvatars dm={dm} />
         ) : (
           <Avatar
-            initials={initialsFrom(counterpart?.displayName ?? dm.name)}
-            src={counterpart?.avatarUrl}
+            userId={counterpart?.userId ?? ""}
+            workspaceId={workspaceId}
+            displayName={counterpart?.displayName ?? dm.name}
+            avatarUrl={counterpart?.avatarUrl}
             color={avatarColorFor(counterpart?.userId ?? dm.id)}
             status={presence}
             size="sm"
@@ -669,7 +697,15 @@ function DMRow({
   );
 }
 
-function DMList({ dms, activeDMId, onSelect, labelId, emptyMessage, actions }: DMListProps) {
+function DMList({
+  dms,
+  activeDMId,
+  onSelect,
+  labelId,
+  emptyMessage,
+  actions,
+  workspaceId,
+}: DMListProps) {
   if (dms.length === 0) {
     return (
       <p className="chat-sidebar__empty" role="status">
@@ -687,6 +723,7 @@ function DMList({ dms, activeDMId, onSelect, labelId, emptyMessage, actions }: D
           isActive={dm.id === activeDMId}
           onSelect={onSelect}
           actions={actions}
+          workspaceId={workspaceId}
         />
       ))}
     </div>
@@ -951,7 +988,7 @@ function ChannelsByCategory({
  * Profile and Settings are siblings, not nested links: one interactive element
  * may not contain another.
  */
-function SidebarUser() {
+function SidebarUser({ workspaceId }: { workspaceId: string }) {
   const self = useSelfProfile();
   // "" covers absent / null / whitespace-only — normalised once, in profileApi.
   const displayName = self.status === "ready" ? self.profile.displayName : "";
@@ -980,8 +1017,10 @@ function SidebarUser() {
               // No usable name means no initials to derive: an empty swatch,
               // never "?". Its colour is still the user's own, so the row does
               // not change identity when a name arrives.
-              initials={displayName ? initialsFrom(displayName) : ""}
-              src={self.profile.avatarUrl}
+              userId={self.profile.id}
+              workspaceId={workspaceId}
+              displayName={displayName}
+              avatarUrl={self.profile.avatarUrl}
               color={avatarColorFor(self.profile.id)}
               status={presence}
               size="md"
@@ -1490,6 +1529,7 @@ export default function ChatSidebar({
                     labelId={DIRECTS_LABEL_ID}
                     emptyMessage="Nenhuma mensagem direta."
                     actions={rowActions}
+                    workspaceId={state.status === "ready" ? state.workspaceId : ""}
                   />
                 )}
               </Section>
@@ -1510,6 +1550,7 @@ export default function ChatSidebar({
                     labelId={GROUPS_LABEL_ID}
                     emptyMessage="Nenhum grupo."
                     actions={rowActions}
+                    workspaceId={state.status === "ready" ? state.workspaceId : ""}
                   />
                 )}
               </Section>
@@ -1532,7 +1573,7 @@ export default function ChatSidebar({
             <IconStar />
             <span>Favoritos</span>
           </Link>
-          <SidebarUser />
+          <SidebarUser workspaceId={state.status === "ready" ? state.workspaceId : ""} />
         </div>
         <SidebarRenameDialog
           channels={channels}
@@ -1552,6 +1593,7 @@ export default function ChatSidebar({
         {newConversationOpen && state.status === "ready" && (
           <NewConversationDialog
             currentUserId={state.currentUserId}
+            workspaceId={state.workspaceId}
             categories={categories || []}
             onClose={closeNewConversation}
             onOpened={handleDMOpened}

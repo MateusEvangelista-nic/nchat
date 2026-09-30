@@ -11,6 +11,7 @@
  */
 
 import { authenticatedFetch } from "../lib/authClient";
+import { safeAvatarUrl } from "./avatarUrl";
 import { parseMessageLinks } from "./messageLinks";
 import { ApiRequestError } from "../lib/api";
 import { onAuthChange } from "../lib/authSession";
@@ -57,6 +58,10 @@ import {
 } from "./chatTypes";
 
 const CHAT_BASE = import.meta.env.VITE_CHAT_API_BASE_URL ?? "/api/chat";
+
+// Temporary compatibility export for callers and tests that imported the
+// normalizer from this module before it became a shared boundary.
+export { safeAvatarUrl } from "./avatarUrl";
 
 // ── API response shapes ───────────────────────────────────────────────────────
 
@@ -266,65 +271,6 @@ function parseNotificationLevel(value: unknown): ConversationNotificationLevel {
 
 function isUnreadCount(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
-}
-
-/** Guards against a hostile payload turning an attribute into a memory hog. */
-const maxAvatarUrlLength = 512;
-
-/**
- * Accepts an avatar URL only when it points at this very origin.
- *
- * Same-origin is the policy, not merely a consequence of the CSP: the deployed
- * `img-src 'self'` would block a third-party image anyway, and loading one
- * would leak the viewer's IP and referer to whoever hosts it — an avatar is a
- * perfectly good tracking pixel. Rejecting cross-origin here means the UI never
- * renders an <img> that is destined to fail, so the initials fallback is a real
- * fallback rather than the normal outcome.
- *
- * `javascript:`, `data:`, `blob:`, `file:` and every other scheme are excluded
- * by the http(s) check; backslashes and control characters are excluded before
- * parsing because browsers normalise them in ways that can escape the origin.
- *
- * This is the render-time boundary. auth-service applies a stricter, separate
- * rule at persistence time (root-relative only), because it cannot know the
- * browser origin — the two checks guard different things and are not duplicates.
- */
-export function safeAvatarUrl(raw: unknown): string | undefined {
-  if (typeof raw !== "string") return undefined;
-  const value = raw.trim();
-  if (value === "" || value.length > maxAvatarUrlLength) return undefined;
-  // eslint-disable-next-line no-control-regex -- control characters are exactly what must be rejected.
-  if (/[\u0000-\u0020\u007f]/.test(value)) return undefined;
-  // Browsers treat "\" as "/", so "/\evil.test" and "\\evil.test" can leave the
-  // origin even though URL parsing may report otherwise.
-  if (value.includes("\\")) return undefined;
-
-  const origin = currentOrigin();
-  if (!origin) return undefined;
-  try {
-    const parsed = new URL(value, origin);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return undefined;
-    if (parsed.origin !== origin) return undefined;
-    if (parsed.username !== "" || parsed.password !== "") return undefined;
-    // The original string is returned, never the resolved absolute form, so a
-    // relative path stays relative and nothing is rewritten behind the caller.
-    return value;
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * Returns the origin to validate against, or "" when there is no document —
- * server-side rendering, a worker, or a bare unit test. With no origin there is
- * no way to prove an avatar is same-origin, so callers drop it and fall back to
- * initials rather than guessing.
- */
-function currentOrigin(): string {
-  if (typeof window === "undefined") return "";
-  const origin = window.location?.origin;
-  // Some environments expose the literal "null" origin (sandboxed frames).
-  return typeof origin === "string" && origin !== "" && origin !== "null" ? origin : "";
 }
 
 /**

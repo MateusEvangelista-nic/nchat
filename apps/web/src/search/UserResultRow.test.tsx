@@ -31,11 +31,11 @@ describe("UserResultRow", () => {
   it("renders the highlighted display name and initials fallback", () => {
     render(
       <MemoryRouter>
-        <UserResultRow result={makeResult()} query="alice" />
+        <UserResultRow result={makeResult()} query="alice" workspaceId="workspace-1" />
       </MemoryRouter>,
     );
     expect(screen.getByText("Alice", { selector: "mark" })).toBeInTheDocument();
-    expect(screen.getByText("AS")).toBeInTheDocument();
+    expect(document.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
   });
 
   it("opens (or creates) the DM and navigates on success", async () => {
@@ -63,7 +63,10 @@ describe("UserResultRow", () => {
     render(
       <MemoryRouter initialEntries={["/chat/search"]}>
         <Routes>
-          <Route path="/chat/search" element={<UserResultRow result={makeResult()} query="" />} />
+          <Route
+            path="/chat/search"
+            element={<UserResultRow result={makeResult()} query="" workspaceId="workspace-1" />}
+          />
           <Route path="/chat/dm/:id" element={<DMMarker />} />
         </Routes>
       </MemoryRouter>,

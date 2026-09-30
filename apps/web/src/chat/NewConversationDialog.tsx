@@ -5,6 +5,7 @@ import ChannelCreationForm from "./ChannelCreationForm";
 import { ApiRequestError } from "../lib/api";
 import { createGroupDM, getOrCreateDirectDM, searchDMCandidates } from "./chatApi";
 import type { DMCandidate, ChannelCategory } from "./chatTypes";
+import { UserAvatar } from "./UserAvatar";
 import {
   limitGroupTitleInput,
   MAX_GROUP_MEMBERS,
@@ -31,6 +32,7 @@ type Submission = { kind: "idle" } | { kind: "direct"; userId: string } | { kind
 
 interface NewConversationDialogProps {
   currentUserId: string;
+  workspaceId?: string;
   categories: ChannelCategory[];
   onClose: () => void;
   onOpened: (conversationId: string) => void;
@@ -38,16 +40,6 @@ interface NewConversationDialogProps {
 }
 
 type SearchStatus = "idle" | "loading" | "ready" | "error";
-
-function initials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
 
 function searchErrorMessage(error: unknown): string {
   if (error instanceof ApiRequestError && error.status === 429) {
@@ -189,6 +181,7 @@ function GroupSubmitFooter({ selectedCount, pending, disabled, onSubmit }: Group
 
 export default function NewConversationDialog({
   currentUserId,
+  workspaceId = "",
   categories = [],
   onClose,
   onOpened,
@@ -496,7 +489,11 @@ export default function NewConversationDialog({
                           }
                         >
                           <span className="new-dm-dialog__avatar" aria-hidden="true">
-                            {initials(candidate.displayName) || "?"}
+                            <UserAvatar
+                              userId={candidate.userId}
+                              workspaceId={workspaceId}
+                              displayName={candidate.displayName}
+                            />
                           </span>
                           <span>{candidate.displayName}</span>
                           {submission.kind === "direct" &&

@@ -32,6 +32,7 @@ import { useReactionMenu } from "./useReactionMenu";
 export interface MessageListProps {
   messages: Message[];
   currentUserId: string;
+  workspaceId: string;
   hasMore: boolean;
   loadingMore: boolean;
   lastMutation: LastMutation;
@@ -80,6 +81,7 @@ export default function MessageList(props: MessageListProps) {
   const {
     messages,
     currentUserId,
+    workspaceId,
     hasMore,
     loadingMore,
     lastMutation,
@@ -131,6 +133,7 @@ export default function MessageList(props: MessageListProps) {
   );
   const context: TimelineRowContext = {
     currentUserId,
+    workspaceId,
     systemScope: props.systemScope,
     presenceTarget: props.presenceTarget,
     mentionTarget: props.mentionTarget,

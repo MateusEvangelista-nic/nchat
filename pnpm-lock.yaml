@@ -90,6 +90,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@blobatar/react':
+        specifier: ^2.7.0
+        version: 2.7.0(blobatar@2.7.0(react@19.2.6))(react@19.2.6)
       '@tanstack/react-virtual':
         specifier: ^3.14.11
         version: 3.14.11(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -138,6 +141,9 @@ importers:
       '@tiptap/react':
         specifier: ^2.14.0
         version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))(@tiptap/pm@2.27.2)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      blobatar:
+        specifier: ^2.7.0
+        version: 2.7.0(react@19.2.6)
       livekit-client:
         specifier: 2.20.1
         version: 2.20.1(@types/dom-mediacapture-record@1.0.22)
@@ -319,6 +325,12 @@ packages:
   '@bcoe/v8-coverage@1.0.2':
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
+
+  '@blobatar/react@2.7.0':
+    resolution: {integrity: sha512-rysDM1+2qoeIwIezVw/em+ZxOMyqqjqJOGNEvtOOU1nFp0jmzyEjlXtJTDM6xPKamq59pq6wcG9+mHIUZV572A==}
+    peerDependencies:
+      blobatar: 2.x
+      react: '>=18'
 
   '@bufbuild/protobuf@1.10.1':
     resolution: {integrity: sha512-wJ8ReQbHxsAfXhrf9ixl0aYbZorRuOWpBNzm8pL8ftmSxQx/wnJD5Eg861NwJU/czy2VXFIebCeZnZrI9rktIQ==}
@@ -1119,6 +1131,17 @@ packages:
 
   bidi-js@1.0.3:
     resolution: {integrity: sha512-RKshQI1R3YQ+n9YJz2QQ147P66ELpa1FQEg20Dk8oW9t2KgLbpDLLp9aGZ7y8WHSshDknG0bknqGw5/tyCs5tw==}
+
+  blobatar@2.7.0:
+    resolution: {integrity: sha512-tL1p2J3dXE/Z9U/ITwHqU7HBHmTH+Am+hif1J1hWAhvFT1VYC2HG+eXtN7081yuY+L2lrp9bs/VaF7dVH3S2jw==}
+    peerDependencies:
+      react: '>=18'
+      vue: '>=3'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      vue:
+        optional: true
 
   brace-expansion@1.1.14:
     resolution: {integrity: sha512-MWPGfDxnyzKU7rNOW9SP/c50vi3xrmrua/+6hfPbCS2ABNWfx24vPidzvC7krjU/RTo235sV776ymlsMtGKj8g==}
@@ -2190,6 +2213,11 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
+  '@blobatar/react@2.7.0(blobatar@2.7.0(react@19.2.6))(react@19.2.6)':
+    dependencies:
+      blobatar: 2.7.0(react@19.2.6)
+      react: 19.2.6
+
   '@bufbuild/protobuf@1.10.1': {}
 
   '@csstools/color-helpers@6.0.2': {}
@@ -2889,6 +2917,10 @@ snapshots:
   bidi-js@1.0.3:
     dependencies:
       require-from-string: 2.0.2
+
+  blobatar@2.7.0(react@19.2.6):
+    optionalDependencies:
+      react: 19.2.6
 
   brace-expansion@1.1.14:
     dependencies:

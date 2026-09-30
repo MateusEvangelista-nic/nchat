@@ -728,8 +728,9 @@ describe("ChatSidebar — DMs", () => {
     // A renders, then fails → initials.
     expect(dmOption().querySelector("img")).toHaveAttribute("src", "/a.png");
     fireEvent.error(dmOption().querySelector("img") as HTMLImageElement);
-    await waitFor(() => expect(dmOption().querySelector("img")).toBeNull());
-    expect(dmOption().textContent).toContain("JL");
+    await waitFor(() =>
+      expect(dmOption().querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/),
+    );
 
     // The same slot switches to B → B renders.
     rerender(tree("/b.png"));
@@ -2060,6 +2061,7 @@ describe("ChatSidebar — footer", () => {
 
   const userLink = () => screen.getByRole("link", { name: /meu perfil/i });
   const avatarText = () => userLink().querySelector(".chat-sidebar__avatar")?.textContent;
+  const avatarSource = () => userLink().querySelector("img")?.getAttribute("src");
 
   it("shows no invented identity while the profile is loading", async () => {
     // A request that never settles: the loading state stays observable.
@@ -2100,8 +2102,7 @@ describe("ChatSidebar — footer", () => {
     renderFooter();
 
     await screen.findByText("Ana Souza");
-    expect(userLink().querySelector("img")).toBeNull();
-    expect(avatarText()).toBe("AS");
+    expect(avatarSource()).toMatch(/^data:image\/svg\+xml/);
   });
 
   it("falls back to initials when the avatar image fails to load", async () => {
@@ -2116,8 +2117,7 @@ describe("ChatSidebar — footer", () => {
     const img = userLink().querySelector("img") as HTMLImageElement;
     fireEvent.error(img);
 
-    expect(userLink().querySelector("img")).toBeNull();
-    expect(avatarText()).toBe("AS");
+    expect(avatarSource()).toMatch(/^data:image\/svg\+xml/);
   });
 
   it("tries a new avatar URL after a previous one failed", async () => {
@@ -2130,7 +2130,7 @@ describe("ChatSidebar — footer", () => {
 
     await screen.findByText("Ana Souza");
     fireEvent.error(userLink().querySelector("img") as HTMLImageElement);
-    expect(userLink().querySelector("img")).toBeNull();
+    expect(avatarSource()).toMatch(/^data:image\/svg\+xml/);
 
     // A confirmed profile change publishes the new URL; the earlier failure is
     // scoped to the URL it happened on and must not suppress this one.
@@ -2159,24 +2159,22 @@ describe("ChatSidebar — footer", () => {
     mockFetchMyProfile.mockResolvedValue({ id: "user-a", displayName: "Ana Souza" });
     act(() => refreshSelfProfile());
 
-    await waitFor(() => expect(userLink().querySelector("img")).toBeNull());
-    expect(avatarText()).toBe("AS");
+    await waitFor(() => expect(avatarSource()).toMatch(/^data:image\/svg\+xml/));
   });
 
-  it.each([
-    ["Ana", "A"],
-    ["Ana Souza", "AS"],
-    ["Ana   Maria   Souza", "AM"],
-    ["Édson Ávila", "ÉÁ"],
-    ["ana souza", "AS"],
-  ])("derives at most two initials from %s", async (displayName, expected) => {
-    mockFetchMyProfile.mockResolvedValue({ id: "user-a", displayName });
+  it("keeps the same Blobatar after a confirmed profile rename", async () => {
+    mockFetchMyProfile.mockResolvedValue({ id: "user-a", displayName: "Ana" });
     renderFooter();
 
     await waitFor(() =>
       expect(screen.queryByTestId("chat-sidebar-user-placeholder")).not.toBeInTheDocument(),
     );
-    expect(avatarText()).toBe(expected);
+    const source = avatarSource();
+    expect(source).toMatch(/^data:image\/svg\+xml/);
+    mockFetchMyProfile.mockResolvedValue({ id: "user-a", displayName: "Édson Ávila" });
+    act(() => refreshSelfProfile());
+    await screen.findByText("Édson Ávila");
+    expect(avatarSource()).toBe(source);
   });
 
   it("keeps the footer structure with a very long name", async () => {
@@ -2189,7 +2187,7 @@ describe("ChatSidebar — footer", () => {
     // out of it.
     const name = await screen.findByText(longName);
     expect(name).toHaveClass("chat-sidebar__user-name");
-    expect(avatarText()).toBe("MA");
+    expect(avatarSource()).toMatch(/^data:image\/svg\+xml/);
     expect(screen.getByRole("button", { name: /menu da conta/i })).toBeInTheDocument();
   });
 

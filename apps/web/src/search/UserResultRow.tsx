@@ -2,13 +2,15 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 
 import { getOrCreateDirectDM } from "../chat/chatApi";
-import { avatarColorFor, initialsFrom } from "../chat/messageDisplay";
+import { avatarColorFor } from "../chat/messageDisplay";
+import { UserAvatar } from "../chat/UserAvatar";
 import HighlightedText from "./HighlightedText";
 import type { UserSearchResult } from "./searchTypes";
 
 interface UserResultRowProps {
   result: UserSearchResult;
   query: string;
+  workspaceId?: string;
 }
 
 /**
@@ -16,7 +18,7 @@ interface UserResultRowProps {
  * flow (getOrCreateDirectDM) — there is no route for another user's profile
  * (see ConversationDetailsPanel.tsx), so no new flow is invented here.
  */
-export default function UserResultRow({ result, query }: UserResultRowProps) {
+export default function UserResultRow({ result, query, workspaceId = "" }: UserResultRowProps) {
   const navigate = useNavigate();
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
@@ -46,11 +48,12 @@ export default function UserResultRow({ result, query }: UserResultRowProps) {
           className={`global-search__avatar global-search__avatar--${avatarColorFor(result.id)}`}
           aria-hidden="true"
         >
-          {result.avatarUrl ? (
-            <img src={result.avatarUrl} alt="" referrerPolicy="no-referrer" />
-          ) : (
-            initialsFrom(result.displayName)
-          )}
+          <UserAvatar
+            userId={result.id}
+            workspaceId={workspaceId}
+            displayName={result.displayName}
+            avatarUrl={result.avatarUrl}
+          />
         </span>
         <span className="global-search__result-title">
           <HighlightedText text={result.displayName} query={query} />

@@ -9,15 +9,15 @@
  * to a header is a change to this file alone.
  */
 
-import { forwardRef, useState, type RefObject } from "react";
+import { forwardRef, type RefObject } from "react";
 
 import type { ResourceCallHeaderState } from "../../calls/resourceCallTypes";
 import type { ChatOutletContext } from "../ChatShell";
 import type { DMCounterpart } from "../chatTypes";
 import { conversationDetailsPanelId } from "../conversationDetailsDisplay";
-import { avatarColorFor, initialsFrom } from "../messageDisplay";
-import PresenceDot from "../PresenceDot";
+import { avatarColorFor } from "../messageDisplay";
 import { presenceLabel, usePresence, type PresenceState } from "../presence";
+import { UserAvatar } from "../UserAvatar";
 import type { ConversationDetailsPanelState } from "../useConversationDetailsPanel";
 import { IconHash } from "./icons";
 
@@ -151,6 +151,7 @@ export function HeaderChannel({ name, detailsToggle, resourceCall }: HeaderChann
 
 interface HeaderDMProps {
   name: string;
+  workspaceId?: string;
   /** Same structured counterpart the sidebar uses — never a second request. */
   counterpart?: DMCounterpart;
   onStartCall?: (targetUserId: string, callType: "audio" | "video") => boolean;
@@ -181,18 +182,13 @@ function HeaderAvatar({
   name,
   counterpart,
   presence,
+  workspaceId,
 }: {
   name: string;
   counterpart: DMCounterpart | undefined;
   presence: PresenceState;
+  workspaceId: string;
 }) {
-  const src = counterpart?.avatarUrl;
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const [trackedSrc, setTrackedSrc] = useState(src);
-  if (src !== trackedSrc) {
-    setTrackedSrc(src);
-    setFailedSrc(null);
-  }
   // Same deterministic colour the sidebar uses for this person, so the initials
   // fallback matches across both surfaces. Keyed on the counterpart user id
   // (stable per person); legacy DMs without a counterpart fall back to the name.
@@ -202,24 +198,22 @@ function HeaderAvatar({
       className={`chat-msg-area__header-avatar chat-msg-area__header-avatar--${color}`}
       aria-hidden="true"
     >
-      {Boolean(src) && failedSrc !== src ? (
-        <img
-          className="chat-msg-area__header-avatar-img"
-          src={src}
-          alt=""
-          referrerPolicy="no-referrer"
-          onError={() => setFailedSrc(src ?? null)}
-        />
-      ) : (
-        initialsFrom(counterpart?.displayName ?? name)
-      )}
-      <PresenceDot state={presence} size="md" />
+      <UserAvatar
+        userId={counterpart?.userId ?? ""}
+        workspaceId={workspaceId}
+        displayName={counterpart?.displayName ?? name}
+        avatarUrl={counterpart?.avatarUrl}
+        presence={presence}
+        size="md"
+        imageClassName="chat-msg-area__header-avatar-img"
+      />
     </div>
   );
 }
 
 export function HeaderDM({
   name,
+  workspaceId = "",
   counterpart,
   onStartCall,
   resourceCall,
@@ -230,7 +224,12 @@ export function HeaderDM({
 
   return (
     <header className="chat-msg-area__header" data-testid="chat-msg-header">
-      <HeaderAvatar name={name} counterpart={counterpart} presence={presence} />
+      <HeaderAvatar
+        name={name}
+        counterpart={counterpart}
+        presence={presence}
+        workspaceId={workspaceId}
+      />
       <h1 className="chat-msg-area__header-title">{name}</h1>
       {/* The header states the status in words as well: this is the surface a
           reader is looking at while writing to this person, so "Ausente" being
@@ -257,6 +256,7 @@ export function HeaderDM({
 
 interface ConversationHeaderProps {
   kind: "channel" | "dm";
+  workspaceId: string;
   name: string;
   counterpart: DMCounterpart | undefined;
   presenceTarget: string | undefined;
@@ -269,6 +269,7 @@ interface ConversationHeaderProps {
 /** The channel or DM header, and the details control both of them offer. */
 export default function ConversationHeader({
   kind,
+  workspaceId,
   name,
   counterpart,
   presenceTarget,
@@ -291,6 +292,7 @@ export default function ConversationHeader({
   return (
     <HeaderDM
       name={name}
+      workspaceId={workspaceId}
       counterpart={counterpart}
       presenceTarget={presenceTarget}
       onStartCall={onStartCall}

@@ -119,6 +119,7 @@ interface RawMessage {
   id: string;
   sender_id: string;
   sender_display_name: string;
+  sender_avatar_url?: string;
   sender_email: string;
   kind: "user" | "system";
   body_text?: string;
@@ -482,6 +483,7 @@ export function makeMessage(overrides: Partial<RawMessage> = {}): RawMessage {
     id: overrides.id ?? "msg-e2e",
     sender_id: overrides.sender_id ?? CURRENT_USER_ID,
     sender_display_name: overrides.sender_display_name ?? CURRENT_USER_NAME,
+    sender_avatar_url: overrides.sender_avatar_url,
     sender_email: overrides.sender_email ?? "author@example.test",
     kind: overrides.kind ?? "user",
     body_text: isRemoved ? undefined : (overrides.body_text ?? "Mensagem E2E"),

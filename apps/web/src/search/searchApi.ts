@@ -9,6 +9,7 @@
 
 import { ApiRequestError } from "../lib/api";
 import { authenticatedFetch } from "../lib/authClient";
+import { safeAvatarUrl } from "../chat/avatarUrl";
 import type {
   ChannelResultResponse,
   ChannelSearchResult,
@@ -75,7 +76,7 @@ function mapUserResult(item: UserResultResponse): UserSearchResult {
   return {
     id: item.id,
     displayName: item.display_name,
-    avatarUrl: item.avatar_url,
+    avatarUrl: safeAvatarUrl(item.avatar_url) ?? null,
   };
 }
 

@@ -175,6 +175,7 @@ function renderPanel(overrides: Partial<Parameters<typeof ConversationDetailsPan
       kind="channel"
       state={state()}
       currentUserId={currentUserId}
+      workspaceId="workspace-1"
       pins={noPins}
       onClose={onClose}
       {...overrides}
@@ -335,6 +336,7 @@ describe("ConversationDetailsPanel — canal: seção Sobre", () => {
         kind="channel"
         state={state({ details: { status: "loading" } })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -347,6 +349,7 @@ describe("ConversationDetailsPanel — canal: seção Sobre", () => {
         kind="channel"
         state={state({ details: { status: "error" } })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -466,6 +469,7 @@ describe("ConversationDetailsPanel — canal: membros", () => {
         kind="channel"
         state={state({ details: { status: "error" } })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -645,6 +649,7 @@ describe("ConversationDetailsPanel — canal: seção de pessoas expansível", (
         kind="channel"
         state={expanded}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -671,6 +676,7 @@ describe("ConversationDetailsPanel — canal: seção de pessoas expansível", (
           },
         })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -764,6 +770,7 @@ describe("ConversationDetailsPanel — canal: mensagens fixadas", () => {
           },
         })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={withPins(...six)}
         onClose={vi.fn()}
       />,
@@ -782,6 +789,7 @@ describe("ConversationDetailsPanel — canal: mensagens fixadas", () => {
         kind="channel"
         state={state()}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={{ ...withPins(...six), conversationKey: "channel:c-2" }}
         onClose={vi.fn()}
       />,
@@ -802,6 +810,7 @@ describe("ConversationDetailsPanel — canal: mensagens fixadas", () => {
         kind="channel"
         state={state()}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={first}
         onClose={vi.fn()}
       />,
@@ -820,6 +829,7 @@ describe("ConversationDetailsPanel — canal: mensagens fixadas", () => {
         kind="channel"
         state={state()}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={{
           ...withPins(pin({ id: "m-2" }), pin({ id: "m-9" })),
           conversationKey: "channel:c-2",
@@ -945,6 +955,7 @@ describe("ConversationDetailsPanel — canal: arquivos recentes", () => {
         kind="channel"
         state={state({ files: { status: "loading" } })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -957,6 +968,7 @@ describe("ConversationDetailsPanel — canal: arquivos recentes", () => {
         kind="channel"
         state={state({ files: { status: "error" } })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -1003,6 +1015,7 @@ function renderGroupPanel(
         reload,
       }}
       currentUserId={viewerId}
+      workspaceId="workspace-1"
       pins={noPins}
       openDM={openDM}
       onClose={onClose}
@@ -1240,6 +1253,7 @@ describe("ConversationDetailsPanel — grupo", () => {
           reload: vi.fn(),
         }}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -1258,6 +1272,7 @@ describe("ConversationDetailsPanel — grupo", () => {
           reload: vi.fn(),
         }}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -1295,6 +1310,7 @@ function renderProfilePanel(details: { kind: "direct" } & DirectDetails = direct
         reload: vi.fn(),
       }}
       currentUserId={currentUserId}
+      workspaceId="workspace-1"
       pins={noPins}
       onClose={onClose}
     />,
@@ -1739,8 +1755,7 @@ describe("ConversationDetailsPanel — roster: identidade e ordem", () => {
     expect(image).toHaveAttribute("referrerpolicy", "no-referrer");
 
     // No URL, so initials — never the user id, and never a broken image.
-    expect(withInitials).toHaveTextContent("B");
-    expect(within(withInitials).queryByRole("presentation", { hidden: true })).toBeNull();
+    expect(withInitials.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
     expect(withInitials).not.toHaveTextContent("u-2");
   });
 
@@ -1818,8 +1833,7 @@ describe("ConversationDetailsPanel — DM 1:1: dados do perfil", () => {
     renderProfilePanel(directDetails({ displayName: "Juliane Lino" }));
 
     const avatar = screen.getByTestId("chat-details-profile-avatar");
-    expect(avatar.querySelector("img")).toBeNull();
-    expect(avatar).toHaveTextContent("JL");
+    expect(avatar.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
   });
 
   it("renders an accepted avatar as a decorative image", () => {
@@ -2082,6 +2096,7 @@ describe("ConversationDetailsPanel — DM 1:1: ação e estados", () => {
           reload: vi.fn(),
         }}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -2104,6 +2119,7 @@ describe("ConversationDetailsPanel — DM 1:1: ação e estados", () => {
           reload: vi.fn(),
         }}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -2126,6 +2142,7 @@ describe("ConversationDetailsPanel — DM 1:1: ação e estados", () => {
           reload: vi.fn(),
         }}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -2153,6 +2170,7 @@ describe("ConversationDetailsPanel — DM 1:1: variante divergente", () => {
           reload: vi.fn(),
         }}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -2201,6 +2219,7 @@ function renderChannelFor(state: ConversationDetailsState) {
       kind="channel"
       state={state}
       currentUserId={currentUserId}
+      workspaceId="workspace-1"
       pins={noPins}
       onClose={vi.fn()}
     />,
@@ -2299,6 +2318,7 @@ describe("ConversationDetailsPanel — adicionar membros: permissão", () => {
           reload: vi.fn(),
         }}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -2356,6 +2376,7 @@ describe("ConversationDetailsPanel — adicionar membros: fluxo", () => {
         kind="group"
         state={readyGroup({ id: "dm-42" })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -2396,6 +2417,7 @@ describe("ConversationDetailsPanel — adicionar membros: fluxo", () => {
         kind="group"
         state={readyGroup({}, reload)}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -2460,6 +2482,7 @@ describe("ConversationDetailsPanel — busca contextual de candidatos", () => {
         kind="group"
         state={readyGroup({ id: "dm-77" })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -2514,6 +2537,7 @@ describe("ConversationDetailsPanel — busca contextual de candidatos", () => {
           participants: [{ userId: "p-1", displayName: "Ana Lima", presence: "online" }],
         })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -2551,6 +2575,7 @@ describe("ConversationDetailsPanel — troca de conversa", () => {
         kind="channel"
         state={readyChannel({ id: "ch-B" })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -2574,6 +2599,7 @@ describe("ConversationDetailsPanel — troca de conversa", () => {
         kind="channel"
         state={readyChannel({ id: "ch-B" })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -2603,6 +2629,7 @@ describe("ConversationDetailsPanel — troca de conversa", () => {
         kind="channel"
         state={readyChannel({ id: "ch-B" })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -2628,6 +2655,7 @@ describe("ConversationDetailsPanel — troca de conversa", () => {
         kind="channel"
         state={readyChannel({ id: "ch-B" })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -2656,6 +2684,7 @@ describe("ConversationDetailsPanel — troca de conversa", () => {
         kind="channel"
         state={readyChannel({ id: "ch-2" })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onClose={vi.fn()}
       />,
@@ -2712,6 +2741,7 @@ function renderRenamePanel(
       kind="channel"
       state={state({ reload })}
       currentUserId={currentUserId}
+      workspaceId="workspace-1"
       pins={noPins}
       onRename={onRename}
       onClose={vi.fn()}
@@ -3218,6 +3248,7 @@ describe("ConversationDetailsPanel — renomear inline: pendente, erro e submit 
         kind="channel"
         state={state({ reload })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onRename={onRename}
         onClose={vi.fn()}
@@ -3242,6 +3273,7 @@ describe("ConversationDetailsPanel — renomear inline: pendente, erro e submit 
           reload,
         })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onRename={onRename}
         onClose={vi.fn()}
@@ -3270,6 +3302,7 @@ describe("ConversationDetailsPanel — renomear inline: pendente, erro e submit 
         kind="channel"
         state={state()}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onRename={onRename}
         onClose={vi.fn()}
@@ -3291,6 +3324,7 @@ describe("ConversationDetailsPanel — renomear inline: pendente, erro e submit 
           },
         })}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         pins={noPins}
         onRename={onRename}
         onClose={vi.fn()}

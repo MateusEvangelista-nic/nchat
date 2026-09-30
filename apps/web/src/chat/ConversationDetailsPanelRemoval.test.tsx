@@ -115,6 +115,7 @@ function renderChannel(
       kind="channel"
       state={channelState(details, rosterSection, reload)}
       currentUserId={currentUserId}
+      workspaceId="workspace-1"
       onClose={vi.fn()}
     />,
   );
@@ -133,6 +134,7 @@ function renderGroup(details = groupDetails()) {
         reload,
       }}
       currentUserId={currentUserId}
+      workspaceId="workspace-1"
       onClose={vi.fn()}
     />,
   );
@@ -343,6 +345,7 @@ describe("a removal that finishes after the reader moved on", () => {
         kind="channel"
         state={channelState(channelDetails(), { status: "ready", data: roster }, reloadA)}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         onClose={vi.fn()}
       />,
     );
@@ -364,6 +367,7 @@ describe("a removal that finishes after the reader moved on", () => {
         kind="channel"
         state={channelState(otherChannel, { status: "ready", data: otherRoster }, reloadB)}
         currentUserId={currentUserId}
+        workspaceId="workspace-1"
         onClose={vi.fn()}
       />,
     );

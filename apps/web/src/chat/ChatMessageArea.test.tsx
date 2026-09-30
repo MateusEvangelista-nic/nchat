@@ -464,7 +464,11 @@ function renderChannelAreaForUser(currentUserId = "me-123") {
       <Routes>
         <Route
           path="/chat"
-          element={<ParentWithContext ctx={{ currentUserId, channels: [], dms: [] }} />}
+          element={
+            <ParentWithContext
+              ctx={{ currentUserId, workspaceId: "workspace-1", channels: [], dms: [] }}
+            />
+          }
         >
           <Route path="channel/:id" element={<ChatMessageArea kind="channel" />} />
         </Route>
@@ -509,6 +513,7 @@ function renderPendingReferenceState(state: unknown) {
             <ParentWithContext
               ctx={{
                 currentUserId: "me-123",
+                workspaceId: "workspace-1",
                 channels: [
                   { id: "destination", name: "Destino", type: "public", canWrite: true },
                   {
@@ -697,6 +702,7 @@ function renderForwardingArea(messages: Message[]) {
             <ParentWithContext
               ctx={{
                 currentUserId: "me-123",
+                workspaceId: "workspace-1",
                 channels: [
                   { id: "current", name: "Atual", type: "public", canWrite: true },
                   {
@@ -847,6 +853,7 @@ describe("ChatMessageArea — RF-08 forwarding", () => {
     );
     const ctx: ChatOutletContext = {
       currentUserId: "me-123",
+      workspaceId: "workspace-1",
       channels: [
         { id: "current", name: "Atual", type: "public", canWrite: true },
         { id: "next", name: "Próximo", type: "public", canWrite: true },
@@ -899,7 +906,7 @@ describe("ChatMessageArea — RF-08 forwarding", () => {
     );
     expect(screen.getAllByTestId("chat-message-forwarded")).toHaveLength(1);
     expect(screen.getByText("<img src=x onerror=alert(1)>")).toBeVisible();
-    expect(document.querySelector("img")).toBeNull();
+    expect(document.querySelector("img[src='x']")).toBeNull();
   });
 });
 
@@ -917,6 +924,7 @@ describe("ChatMessageArea — channel header", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "me-123",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                 }}
@@ -945,6 +953,7 @@ describe("ChatMessageArea — channel header", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "me-123",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [{ id: "dm-juliane", type: "1:1", name: "dm-juliane", participants: [] }],
                 }}
@@ -973,6 +982,7 @@ describe("ChatMessageArea — channel header", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "me-123",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [{ id: "dm-1", type: "1:1", name: "Juliane", participants: [] }],
                 }}
@@ -997,7 +1007,11 @@ describe("ChatMessageArea — channel header", () => {
         <Routes>
           <Route
             path="/chat"
-            element={<ParentWithContext ctx={{ currentUserId: "me-123", channels: [], dms }} />}
+            element={
+              <ParentWithContext
+                ctx={{ currentUserId: "me-123", workspaceId: "workspace-1", channels: [], dms }}
+              />
+            }
           >
             <Route path="dm/:id" element={<ChatMessageArea kind="dm" />} />
           </Route>
@@ -1039,8 +1053,8 @@ describe("ChatMessageArea — channel header", () => {
     ]);
 
     const header = await screen.findByTestId("chat-msg-header");
-    expect(header.querySelector("img")).toBeNull();
-    expect(header).toHaveTextContent("JL");
+    expect(header.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
+    expect(header).toHaveTextContent("Juliane Lino");
   });
 
   it("falls back to initials when the DM header avatar fails to load", async () => {
@@ -1057,8 +1071,10 @@ describe("ChatMessageArea — channel header", () => {
     const header = await screen.findByTestId("chat-msg-header");
     fireEvent.error(header.querySelector("img") as HTMLImageElement);
 
-    await waitFor(() => expect(header.querySelector("img")).toBeNull());
-    expect(header).toHaveTextContent("JL");
+    await waitFor(() =>
+      expect(header.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/),
+    );
+    expect(header).toHaveTextContent("Juliane Lino");
   });
 
   it("keeps the group DM header on its title with no avatar image", async () => {
@@ -1084,6 +1100,7 @@ describe("ChatMessageArea — channel header", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "me-123",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   joinResourceCall,
@@ -1117,6 +1134,7 @@ describe("ChatMessageArea — channel header", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "me-123",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   joinResourceCall: vi.fn(),
@@ -1151,6 +1169,7 @@ describe("ChatMessageArea — channel header", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "me-123",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [{ id: "dm-grp", type: "group", name: "Equipe Infra", participants: [] }],
                   joinResourceCall,
@@ -1186,6 +1205,7 @@ describe("ChatMessageArea — channel header", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "me-123",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [
                     {
@@ -1234,6 +1254,7 @@ describe("ChatMessageArea — channel header", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "me-123",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [
                     {
@@ -1310,6 +1331,7 @@ describe("ChatMessageArea — channel header", () => {
     mockFetchDMMessages.mockResolvedValue(emptyPage);
     const ctx: ChatOutletContext = {
       currentUserId: "me-123",
+      workspaceId: "workspace-1",
       channels: [],
       dms: [dmWith(avatarUrl, name)],
     };
@@ -1331,6 +1353,7 @@ describe("ChatMessageArea — channel header", () => {
   ) => {
     const ctx: ChatOutletContext = {
       currentUserId: "me-123",
+      workspaceId: "workspace-1",
       channels: [],
       dms: [dmWith(avatarUrl, name)],
     };
@@ -1352,8 +1375,10 @@ describe("ChatMessageArea — channel header", () => {
     // A fails → initials fallback.
     expect(header.querySelector("img")).toHaveAttribute("src", "/avatar-a.png");
     fireEvent.error(header.querySelector("img") as HTMLImageElement);
-    await waitFor(() => expect(header.querySelector("img")).toBeNull());
-    expect(header).toHaveTextContent("JL");
+    await waitFor(() =>
+      expect(header.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/),
+    );
+    expect(header).toHaveTextContent("Juliane Lino");
 
     // Navigate to B (same header instance) → B renders.
     rerenderHeaderCtx(rerender, "/avatar-b.png");
@@ -1372,12 +1397,14 @@ describe("ChatMessageArea — channel header", () => {
     const { rerender } = renderHeaderCtx("/avatar-a.png");
     const header = await screen.findByTestId("chat-msg-header");
     fireEvent.error(header.querySelector("img") as HTMLImageElement);
-    await waitFor(() => expect(header.querySelector("img")).toBeNull());
+    await waitFor(() =>
+      expect(header.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/),
+    );
 
     // Re-render with the identical failed URL: no new attempt, stays initials.
     rerenderHeaderCtx(rerender, "/avatar-a.png");
-    expect(header.querySelector("img")).toBeNull();
-    expect(header).toHaveTextContent("JL");
+    expect(header.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/);
+    expect(header).toHaveTextContent("Juliane Lino");
   });
 
   it("falls back in the header when a valid avatar is replaced by an absent one", async () => {
@@ -1386,15 +1413,19 @@ describe("ChatMessageArea — channel header", () => {
     expect(header.querySelector("img")).toHaveAttribute("src", "/avatar-a.png");
 
     rerenderHeaderCtx(rerender, undefined);
-    await waitFor(() => expect(header.querySelector("img")).toBeNull());
-    expect(header).toHaveTextContent("JL");
+    await waitFor(() =>
+      expect(header.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/),
+    );
+    expect(header).toHaveTextContent("Juliane Lino");
   });
 
   it("shows B's avatar and name even when A and B share a name but differ by URL", async () => {
     const { rerender } = renderHeaderCtx("/avatar-a.png", "Ana");
     const header = await screen.findByTestId("chat-msg-header");
     fireEvent.error(header.querySelector("img") as HTMLImageElement);
-    await waitFor(() => expect(header.querySelector("img")).toBeNull());
+    await waitFor(() =>
+      expect(header.querySelector("img")?.getAttribute("src")).toMatch(/^data:image\/svg\+xml/),
+    );
 
     rerenderHeaderCtx(rerender, "/avatar-b.png", "Ana");
     const image = await waitFor(() => {
@@ -1476,6 +1507,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   getResourceCall: () => call,
@@ -1507,6 +1539,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   getResourceCall: () => call,
@@ -1544,6 +1577,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   getResourceCall: () => makeResourceCall(),
@@ -1581,6 +1615,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [
                     { id: "geral", name: "geral", type: "public", canWrite: true },
                     { id: "outro", name: "outro", type: "public", canWrite: true },
@@ -1616,6 +1651,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [
                     {
@@ -1652,6 +1688,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [{ id: "grupo-1", type: "group", name: "Infra Squad", participants: [] }],
                   getResourceCall: () =>
@@ -1683,6 +1720,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [{ id: "grupo-1", type: "group", name: "Infra Squad", participants: [] }],
                   getResourceCall: () =>
@@ -1721,6 +1759,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [
                     {
                       id: "infraestrutura",
@@ -1758,6 +1797,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   getResourceCall: () => makeResourceCall(),
@@ -1789,6 +1829,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   getResourceCall: () => makeResourceCall(),
@@ -1820,6 +1861,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   getResourceCall: () => makeResourceCall(),
@@ -1850,6 +1892,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   getResourceCall: () => makeResourceCall(),
@@ -1881,6 +1924,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   getResourceCall: () => terminalCall,
@@ -1911,6 +1955,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   getResourceCall: () => call,
@@ -1949,6 +1994,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   getResourceCall: () => call,
@@ -1984,6 +2030,7 @@ describe("ChatMessageArea — #642 active resource call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   getResourceCall: () => makeResourceCall(),
@@ -2024,6 +2071,7 @@ describe("ChatMessageArea — #673 icon call controls", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   getResourceCall: () => null,
@@ -2058,6 +2106,7 @@ describe("ChatMessageArea — #673 icon call controls", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [
                     {
@@ -2133,6 +2182,7 @@ describe("ChatMessageArea — #673 active direct call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [directDM],
                   directCallSession: directCallSession(),
@@ -2166,6 +2216,7 @@ describe("ChatMessageArea — #673 active direct call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [directDM],
                   directCallSession: directCallSession({ callType: "video" }),
@@ -2193,6 +2244,7 @@ describe("ChatMessageArea — #673 active direct call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [
                     directDM,
@@ -2232,6 +2284,7 @@ describe("ChatMessageArea — #673 active direct call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [{ id: "dm-grp", type: "group", name: "Equipe Infra", participants: [] }],
                   directCallSession: directCallSession(),
@@ -2259,6 +2312,7 @@ describe("ChatMessageArea — #673 active direct call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "geral", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                   directCallSession: directCallSession(),
@@ -2286,6 +2340,7 @@ describe("ChatMessageArea — #673 active direct call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [directDM],
                   directCallSession: undefined,
@@ -2314,6 +2369,7 @@ describe("ChatMessageArea — #673 active direct call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [directDM],
                   directCallSession: directCallSession({ onLeave }),
@@ -2343,6 +2399,7 @@ describe("ChatMessageArea — #673 active direct call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [directDM],
                   directCallSession: directCallSession({
@@ -2376,6 +2433,7 @@ describe("ChatMessageArea — #673 active direct call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [directDM],
                   directCallSession: directCallSession({ onOpenFullCall }),
@@ -2404,6 +2462,7 @@ describe("ChatMessageArea — #673 active direct call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [directDM],
                   directCallSession: directCallSession(),
@@ -2427,6 +2486,7 @@ describe("ChatMessageArea — #673 active direct call bar", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "user-an",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [directDM],
                   directCallSession: directCallSession(),
@@ -3589,6 +3649,7 @@ describe("ChatMessageArea — RF-12 typing indicator display name", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "me-123",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [
                     {
@@ -4556,6 +4617,7 @@ describe("ChatMessageArea — RF-09 cross-channel references", () => {
           <Outlet
             context={{
               currentUserId: "me-123",
+              workspaceId: "workspace-1",
               channels: [
                 { id: "destination", name: "Destino", type: "public" },
                 { id: rf09SourceChannelID, name: "Origem privada", type: "private" },
@@ -4635,6 +4697,7 @@ describe("ChatMessageArea — RF-09 cross-channel references", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "me-123",
+                  workspaceId: "workspace-1",
                   channels: [
                     {
                       id: rf09SourceChannelID,
@@ -5523,6 +5586,7 @@ describe("ChatMessageArea — route decoding", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "me-123",
+                  workspaceId: "workspace-1",
                   channels: [
                     { id: "equipe infra", name: "Equipe Infra", type: "public", canWrite: true },
                   ],
@@ -5623,6 +5687,7 @@ function ParentWithContext({
         <SidebarDetailsPanel
           target={sidebarTarget}
           currentUserId={ctx.currentUserId}
+          workspaceId="workspace-1"
           canonicalName=""
           coordinator={coordinator}
           onClose={() => setSidebarTarget(null)}
@@ -5686,7 +5751,7 @@ describe("ChatMessageArea — one open-DM flow across real surfaces (issue #895)
             path="/chat"
             element={
               <ParentWithContext
-                ctx={{ currentUserId: "me-123", channels: [], dms: [] }}
+                ctx={{ currentUserId: "me-123", workspaceId: "workspace-1", channels: [], dms: [] }}
                 sidebarTargets={[groupA, groupB]}
                 onRender={options.onRender}
                 onNavigate={options.onNavigate}
@@ -5961,7 +6026,11 @@ describe("ChatMessageArea — message alignment", () => {
         <Routes>
           <Route
             path="/chat/channel"
-            element={<ParentWithContext ctx={{ currentUserId: "me-123", channels: [], dms: [] }} />}
+            element={
+              <ParentWithContext
+                ctx={{ currentUserId: "me-123", workspaceId: "workspace-1", channels: [], dms: [] }}
+              />
+            }
           >
             <Route path=":id" element={<ChatMessageArea kind="channel" />} />
           </Route>
@@ -5983,7 +6052,11 @@ describe("ChatMessageArea — message alignment", () => {
         <Routes>
           <Route
             path="/chat/channel"
-            element={<ParentWithContext ctx={{ currentUserId: "me-123", channels: [], dms: [] }} />}
+            element={
+              <ParentWithContext
+                ctx={{ currentUserId: "me-123", workspaceId: "workspace-1", channels: [], dms: [] }}
+              />
+            }
           >
             <Route path=":id" element={<ChatMessageArea kind="channel" />} />
           </Route>
@@ -6081,7 +6154,13 @@ describe("ChatMessageArea — sender display", () => {
             path="/chat"
             element={
               <ParentWithContext
-                ctx={{ currentUserId: "me-123", channels: [], dms: [], refreshConversations }}
+                ctx={{
+                  currentUserId: "me-123",
+                  workspaceId: "workspace-1",
+                  channels: [],
+                  dms: [],
+                  refreshConversations,
+                }}
               />
             }
           >
@@ -6207,7 +6286,13 @@ describe("ChatMessageArea — sender display", () => {
             path="/chat"
             element={
               <ParentWithContext
-                ctx={{ currentUserId: "me-123", channels: [], dms: [], refreshConversations }}
+                ctx={{
+                  currentUserId: "me-123",
+                  workspaceId: "workspace-1",
+                  channels: [],
+                  dms: [],
+                  refreshConversations,
+                }}
               />
             }
           >
@@ -6275,7 +6360,13 @@ describe("ChatMessageArea — sender display", () => {
             path="/chat"
             element={
               <ParentWithContext
-                ctx={{ currentUserId: "me-123", channels: [], dms: [], refreshConversations }}
+                ctx={{
+                  currentUserId: "me-123",
+                  workspaceId: "workspace-1",
+                  channels: [],
+                  dms: [],
+                  refreshConversations,
+                }}
               />
             }
           >
@@ -6351,7 +6442,13 @@ describe("ChatMessageArea — sender display", () => {
             path="/chat"
             element={
               <ParentWithContext
-                ctx={{ currentUserId: "me-123", channels: [], dms: [], refreshConversations }}
+                ctx={{
+                  currentUserId: "me-123",
+                  workspaceId: "workspace-1",
+                  channels: [],
+                  dms: [],
+                  refreshConversations,
+                }}
               />
             }
           >
@@ -6452,6 +6549,7 @@ describe("ChatMessageArea — sender display", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "me-123",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [{ id: "group-1", type: "group", name: "Grupo", participants: [] }],
                 }}
@@ -6483,6 +6581,7 @@ describe("ChatMessageArea — sender display", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "me-123",
+                  workspaceId: "workspace-1",
                   channels: [],
                   dms: [
                     {
@@ -6519,7 +6618,11 @@ describe("ChatMessageArea — sender display", () => {
         <Routes>
           <Route
             path="/chat/channel"
-            element={<ParentWithContext ctx={{ currentUserId: "me-123", channels: [], dms: [] }} />}
+            element={
+              <ParentWithContext
+                ctx={{ currentUserId: "me-123", workspaceId: "workspace-1", channels: [], dms: [] }}
+              />
+            }
           >
             <Route path=":id" element={<ChatMessageArea kind="channel" />} />
           </Route>
@@ -6552,7 +6655,13 @@ describe("ChatMessageArea — #795 mention click opens DM", () => {
             path="/chat"
             element={
               <ParentWithContext
-                ctx={{ currentUserId: "me-123", channels: [], dms: [], refreshConversations }}
+                ctx={{
+                  currentUserId: "me-123",
+                  workspaceId: "workspace-1",
+                  channels: [],
+                  dms: [],
+                  refreshConversations,
+                }}
               />
             }
           >
@@ -6707,6 +6816,7 @@ describe("ChatMessageArea — resolved display name", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "ch-uuid-001", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                 }}
@@ -6736,6 +6846,7 @@ describe("ChatMessageArea — resolved display name", () => {
               <ParentWithContext
                 ctx={{
                   currentUserId: "",
+                  workspaceId: "workspace-1",
                   channels: [{ id: "ch-uuid-001", name: "geral", type: "public", canWrite: true }],
                   dms: [],
                 }}
@@ -6961,7 +7072,11 @@ describe("ChatMessageArea — #492 scroll navigation & read-state", () => {
         <Routes>
           <Route
             path="/chat"
-            element={<ParentWithContext ctx={{ channels: [], dms: [], ...ctx }} />}
+            element={
+              <ParentWithContext
+                ctx={{ channels: [], dms: [], workspaceId: "workspace-1", ...ctx }}
+              />
+            }
           >
             <Route path="channel/:id" element={<ChatMessageArea kind="channel" />} />
           </Route>
@@ -6977,6 +7092,7 @@ describe("ChatMessageArea — #492 scroll navigation & read-state", () => {
 
     renderWithContext("geral", {
       currentUserId: "me-123",
+      workspaceId: "workspace-1",
       channels: [{ id: "geral", name: "Geral", type: "public", canWrite: true, unreadCount: 0 }],
     });
 
@@ -7001,6 +7117,7 @@ describe("ChatMessageArea — #492 scroll navigation & read-state", () => {
 
     renderWithContext("geral", {
       currentUserId: "me-123",
+      workspaceId: "workspace-1",
       channels: [{ id: "geral", name: "Geral", type: "public", canWrite: true, unreadCount: 2 }],
     });
 
@@ -7033,6 +7150,7 @@ describe("ChatMessageArea — #492 scroll navigation & read-state", () => {
 
     renderWithContext("geral", {
       currentUserId: "me-123",
+      workspaceId: "workspace-1",
       channels: [{ id: "geral", name: "Geral", type: "public", canWrite: true, unreadCount: 2 }],
       markRead,
     });
@@ -7049,6 +7167,7 @@ describe("ChatMessageArea — #492 scroll navigation & read-state", () => {
 
     renderWithContext("geral", {
       currentUserId: "me-123",
+      workspaceId: "workspace-1",
       channels: [{ id: "geral", name: "Geral", type: "public", canWrite: true, unreadCount: 1 }],
       markRead,
     });
@@ -7611,7 +7730,11 @@ describe("ChatMessageArea — #492 scroll navigation & read-state", () => {
         <Routes>
           <Route
             path="/chat"
-            element={<ParentWithContext ctx={{ currentUserId: "me-123", channels: [], dms: [] }} />}
+            element={
+              <ParentWithContext
+                ctx={{ currentUserId: "me-123", workspaceId: "workspace-1", channels: [], dms: [] }}
+              />
+            }
           >
             <Route
               path="channel/:id"
@@ -7657,6 +7780,7 @@ describe("ChatMessageArea — #492 scroll navigation & read-state", () => {
       );
       renderWithContext("geral", {
         currentUserId: "me-123",
+        workspaceId: "workspace-1",
         channels: [{ id: "geral", name: "Geral", type: "public", canWrite: true, unreadCount: 0 }],
       });
       const list = await screen.findByRole("log");
@@ -7880,6 +8004,7 @@ describe("ChatMessageArea — #492 scroll navigation & read-state", () => {
       );
       const { unmount } = renderWithContext("geral", {
         currentUserId: "me-123",
+        workspaceId: "workspace-1",
         channels: [{ id: "geral", name: "Geral", type: "public", canWrite: true, unreadCount: 0 }],
       });
       await screen.findByText("Última mensagem");
@@ -8466,7 +8591,9 @@ function renderChannelSwitcher(currentUserId = "me-123") {
         <button type="button" onClick={() => navigate("/chat/channel/outro")}>
           ir para outro canal
         </button>
-        <ParentWithContext ctx={{ currentUserId, channels: [], dms: [] }} />
+        <ParentWithContext
+          ctx={{ currentUserId, workspaceId: "workspace-1", channels: [], dms: [] }}
+        />
       </>
     );
   }
@@ -8508,7 +8635,9 @@ function renderChannelsWithMutableNames(
         <button type="button" onClick={() => setChannels(afterRename)}>
           aplicar renomeacao
         </button>
-        <ParentWithContext ctx={{ currentUserId: "me-123", channels, dms: [] }} />
+        <ParentWithContext
+          ctx={{ currentUserId: "me-123", workspaceId: "workspace-1", channels, dms: [] }}
+        />
       </>
     );
   }
@@ -8866,7 +8995,14 @@ describe("ChatMessageArea — mensagens fixadas no painel (#896)", () => {
             path="/chat"
             element={
               <>
-                <ParentWithContext ctx={{ currentUserId: "me-123", channels: [], dms: [] }} />
+                <ParentWithContext
+                  ctx={{
+                    currentUserId: "me-123",
+                    workspaceId: "workspace-1",
+                    channels: [],
+                    dms: [],
+                  }}
+                />
                 <LocationProbe />
               </>
             }
@@ -9235,6 +9371,7 @@ function renderDMWithContext(
             <ParentWithContext
               ctx={{
                 currentUserId,
+                workspaceId: "workspace-1",
                 channels: [],
                 dms: [
                   {
@@ -9403,6 +9540,7 @@ function renderCrossTypeSwitcher(currentUserId = "me-123") {
         <ParentWithContext
           ctx={{
             currentUserId,
+            workspaceId: "workspace-1",
             channels: [],
             dms: [
               { id: groupConversationId, type: "group", name: "Time de Infra", participants: [] },
@@ -9614,6 +9752,7 @@ function renderDirectSwitcher(currentUserId = "me-123") {
         <ParentWithContext
           ctx={{
             currentUserId,
+            workspaceId: "workspace-1",
             channels: [],
             dms: [
               {
@@ -10724,7 +10863,13 @@ function renderInlineRenameHost(channel: ChatOutletContext["channels"][number]) 
     };
     return (
       <ParentWithContext
-        ctx={{ currentUserId: "me-123", channels, dms: [], renameChannel: rename }}
+        ctx={{
+          currentUserId: "me-123",
+          workspaceId: "workspace-1",
+          channels,
+          dms: [],
+          renameChannel: rename,
+        }}
       />
     );
   }

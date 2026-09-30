@@ -8,7 +8,8 @@
  */
 
 import { useEffect, useRef, type KeyboardEvent } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, useOutletContext } from "react-router";
+import type { ChatOutletContext } from "../chat/ChatShell";
 
 import "./GlobalSearchPage.css";
 
@@ -26,6 +27,8 @@ const TABS: Array<{ id: SearchTab; label: string }> = [
 ];
 
 export default function GlobalSearchPage() {
+  const outlet = useOutletContext<ChatOutletContext | null>();
+  const workspaceId = outlet?.workspaceId ?? "";
   const { state, setQuery, setActiveTab, loadMore, retryTab } = useGlobalSearch();
   const navigate = useNavigate();
   const { key: entryKey } = useLocation();
@@ -124,7 +127,9 @@ export default function GlobalSearchPage() {
               emptyMessage="Nenhuma pessoa encontrada."
               listLabel="Pessoas encontradas"
               itemKey={(item) => item.id}
-              renderItem={(item) => <UserResultRow result={item} query={state.activeQuery} />}
+              renderItem={(item) => (
+                <UserResultRow result={item} query={state.activeQuery} workspaceId={workspaceId} />
+              )}
               onRetry={() => retryTab("users")}
               onLoadMore={() => loadMore("users")}
             />

@@ -1,23 +1,23 @@
 import "./ProfileIdentityCard.css";
-import { avatarColorFor, initialsFrom } from "../chat/messageDisplay";
-import { PersonAvatarImage } from "../chat/PersonAvatarImage";
+import { avatarColorFor } from "../chat/messageDisplay";
+import { UserAvatar } from "../chat/UserAvatar";
 import { presenceLabel, usePresence } from "../chat/presence";
 import type { SelfProfile } from "./profileApi";
 
 interface ProfileIdentityCardProps {
   profile: SelfProfile;
+  workspaceId?: string;
   onEdit: () => void;
   onChangePhoto: () => void;
 }
 
 export default function ProfileIdentityCard({
   profile,
+  workspaceId = "",
   onEdit,
   onChangePhoto,
 }: ProfileIdentityCardProps) {
   const presence = usePresence(profile.id);
-  const initials = profile.displayName ? initialsFrom(profile.displayName) : "";
-
   return (
     <section className="profile-identity" aria-label="Identidade">
       <div
@@ -25,10 +25,12 @@ export default function ProfileIdentityCard({
         style={{ color: avatarColorFor(profile.id) }}
         aria-hidden="true"
       >
-        <PersonAvatarImage
-          src={profile.avatarUrl}
-          initials={initials}
-          imgClassName="profile-identity__avatar-img"
+        <UserAvatar
+          userId={profile.id}
+          workspaceId={workspaceId}
+          displayName={profile.displayName}
+          avatarUrl={profile.avatarUrl}
+          imageClassName="profile-identity__avatar-img"
         />
       </div>
       <div className="profile-identity__info">

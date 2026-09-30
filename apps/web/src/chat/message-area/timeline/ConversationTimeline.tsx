@@ -34,6 +34,7 @@ export interface ConversationTimelineProps {
   mentionTarget?: MentionTarget;
   state: MessagesState;
   currentUserId: string;
+  workspaceId: string;
   /** Every callback a message offers; see MessageTimelineItem. */
   actions: ConversationMessageActions;
   onLoadMore: () => void;
@@ -93,6 +94,7 @@ export default function ConversationTimeline(props: ConversationTimelineProps) {
     <MessageList
       messages={state.messages}
       currentUserId={props.currentUserId}
+      workspaceId={props.workspaceId}
       // "canal" / "grupo" / "conversa" for this timeline's system messages
       // (issue #527).
       systemScope={systemScopeFor(props.detailsKind, kind)}
