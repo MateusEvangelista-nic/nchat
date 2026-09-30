@@ -22,6 +22,7 @@ import { noopConversationDrafts } from "./useConversationDrafts";
 
 const emptyOutletContext: ChatOutletContext = {
   currentUserId: "",
+  workspaceId: "",
   channels: [],
   dms: [],
   drafts: noopConversationDrafts,

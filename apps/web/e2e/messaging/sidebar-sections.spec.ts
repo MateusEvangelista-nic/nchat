@@ -563,11 +563,15 @@ test.describe("sidebar — renomear canal", () => {
 test.describe("sidebar — rodapé do usuário autenticado", () => {
   const userLink = (page: Page) => page.getByRole("link", { name: /meu perfil/i });
 
-  test("mostra o nome real e as iniciais quando não há foto", async ({ page }, testInfo) => {
+  test("mostra o nome real e o Blobatar quando não há foto", async ({ page }, testInfo) => {
     await openChatWithAllThreeCategories(page, testInfo);
 
     await expect(userLink(page)).toContainText(CURRENT_USER_NAME);
-    await expect(userLink(page).locator("img")).toHaveCount(0);
+    const avatar = userLink(page).locator("img");
+    await expect(avatar).toHaveAttribute("src", /^data:image\/svg\+xml/);
+    const source = await avatar.getAttribute("src");
+    await page.reload();
+    await expect(avatar).toHaveAttribute("src", source!);
     // Never the placeholder identity this issue removed.
     await expect(page.getByTestId("chat-sidebar")).not.toContainText("Usuário");
   });

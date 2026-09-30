@@ -578,6 +578,7 @@ export default function AppShell() {
       <SidebarDetailsPanel
         target={openDetailsTarget}
         currentUserId={currentUserId}
+        workspaceId={state.status === "ready" ? state.workspaceId : ""}
         onRename={renameDetailsTarget}
         canonicalName={detailsCanonicalName}
         // The same coordinator the conversation's own surfaces use, so a
@@ -596,6 +597,7 @@ export default function AppShell() {
         <InAppMessageAlert
           key={inAppAlert.messageId}
           alert={inAppAlert}
+          workspaceId={state.status === "ready" ? state.workspaceId : ""}
           onOpen={openInAppAlert}
           onDismiss={dismissInAppAlert}
         />

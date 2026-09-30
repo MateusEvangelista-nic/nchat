@@ -33,6 +33,7 @@ import {
 import type { AddMembersResult } from "./chatTypes";
 import { maxAddMembersPerRequest } from "./addMembersLimits";
 import { useMemberPicker } from "./useMemberPicker";
+import { UserAvatar } from "./UserAvatar";
 
 /**
  * Which conversation the dialog is adding to.
@@ -47,6 +48,7 @@ export type AddMembersTarget =
 
 interface AddMembersDialogProps {
   target: AddMembersTarget;
+  workspaceId?: string;
   /**
    * Locally-known IDs to hide from results — in practice the viewer.
    *
@@ -94,18 +96,9 @@ function submitErrorMessage(error: unknown): string {
   return "Não foi possível adicionar as pessoas. Tente novamente.";
 }
 
-function initials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
-
 export default function AddMembersDialog({
   target,
+  workspaceId = "",
   excludedUserIds,
   onClose,
   onAdded,
@@ -320,7 +313,11 @@ export default function AddMembersDialog({
                     }}
                   >
                     <span className="add-members__avatar" aria-hidden="true">
-                      {initials(candidate.displayName) || "?"}
+                      <UserAvatar
+                        userId={candidate.userId}
+                        workspaceId={workspaceId}
+                        displayName={candidate.displayName}
+                      />
                     </span>
                     <span>{candidate.displayName}</span>
                   </button>

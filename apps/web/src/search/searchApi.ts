@@ -11,7 +11,7 @@
 
 import { ApiRequestError } from "../lib/api";
 import { authenticatedFetch } from "../lib/authClient";
-import { safeAvatarUrl } from "../chat/chatApi";
+import { safeAvatarUrl } from "../chat/avatarUrl";
 import { parseAttachmentPreviewStatus, parseAttachmentStatus } from "../chat/chatTypes";
 import type {
   ChannelResultResponse,

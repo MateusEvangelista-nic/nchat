@@ -22,6 +22,7 @@ import type { ConversationDraftsApi } from "./useConversationDrafts";
  */
 function readySidebar(state: SidebarState): {
   currentUserId: string;
+  workspaceId: string;
   channels: Channel[];
   dms: DMConversation[];
   attachmentLimits: WorkspaceAttachmentLimits;
@@ -29,6 +30,7 @@ function readySidebar(state: SidebarState): {
   if (state.status !== "ready")
     return {
       currentUserId: "",
+      workspaceId: "",
       channels: [],
       dms: [],
       attachmentLimits: {
@@ -39,6 +41,7 @@ function readySidebar(state: SidebarState): {
     };
   return {
     currentUserId: state.currentUserId,
+    workspaceId: state.workspaceId,
     channels: state.channels,
     dms: state.dms,
     attachmentLimits: state.attachmentLimits ?? {
@@ -104,6 +107,7 @@ export interface ActiveDirectCallSession {
 
 export interface ChatOutletContext {
   currentUserId: string;
+  workspaceId: string;
   channels: Channel[];
   dms: DMConversation[];
   attachmentLimits?: WorkspaceAttachmentLimits;
@@ -202,6 +206,7 @@ export default function ChatShell() {
     if (state.status === "ready") {
       registerDirectory({
         currentUserId: state.currentUserId,
+        workspaceId: state.workspaceId,
         channels: state.channels,
         dms: state.dms,
       });
@@ -282,6 +287,7 @@ export default function ChatShell() {
 
   const outletContext: ChatOutletContext = {
     currentUserId: ready.currentUserId,
+    workspaceId: ready.workspaceId,
     channels: ready.channels,
     dms: ready.dms,
     attachmentLimits: ready.attachmentLimits,

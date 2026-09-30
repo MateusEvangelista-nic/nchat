@@ -77,10 +77,10 @@ import {
   type RosterParticipant,
 } from "./participantRosterOrder";
 import type { DirectMessageAccess } from "./directMessage";
-import { avatarColorFor, formatLongDate, initialsFrom } from "./messageDisplay";
-import PresenceDot from "./PresenceDot";
+import { avatarColorFor, formatLongDate } from "./messageDisplay";
 import RecentFileRow from "./RecentFileRow";
 import { presenceLabel, presenceTargetKey, usePresence, usePresenceTarget } from "./presence";
+import { UserAvatar } from "./UserAvatar";
 import type {
   ConversationDetailsState,
   FilesSection,
@@ -362,6 +362,7 @@ function previewShortfall(
 function rosterItems(
   participants: readonly RosterParticipant[],
   context: RosterContext,
+  workspaceId: string,
   removal?: ParticipantRemoval,
 ): ReactNode[] {
   const access = context.openDM;
@@ -381,6 +382,7 @@ function rosterItems(
         participant={participant}
         presence={presenceOf(participant.userId)}
         isCurrentUser={isCurrentUser}
+        workspaceId={workspaceId}
         // The viewer's own row activates nothing: there is no conversation to
         // open with yourself, and the flow refuses it anyway.
         onOpenDM={isCurrentUser ? undefined : openDM}
@@ -446,6 +448,7 @@ function rosterItems(
 function channelRosterContent(
   roster: ChannelRoster,
   context: RosterContext,
+  workspaceId: string,
   removal?: ParticipantRemoval,
 ): ExpandableSectionContent {
   return {
@@ -460,6 +463,7 @@ function channelRosterContent(
         subtitle: member.role === "moderator" ? "Moderador" : "Membro",
       })),
       context,
+      workspaceId,
       removal,
     ),
     empty: <SectionMessage>Nenhum membro para administrar neste canal.</SectionMessage>,
@@ -486,6 +490,7 @@ function channelRosterContent(
 function groupParticipantsContent(
   details: GroupDetails,
   context: RosterContext,
+  workspaceId: string,
   removal?: ParticipantRemoval,
 ): ExpandableSectionContent {
   return {
@@ -499,6 +504,7 @@ function groupParticipantsContent(
         subtitle: "Participante",
       })),
       context,
+      workspaceId,
       removal,
     ),
     empty: <SectionMessage>Nenhum participante para exibir.</SectionMessage>,
@@ -565,7 +571,13 @@ function ProfileLocalTimeRow({ timezone }: { timezone?: string }) {
  * presence badge disappears when the server tracks nothing rather than claiming
  * "offline", and each metadata row says "Não informado".
  */
-function DirectProfileSection({ details }: { details: DirectDetails }) {
+function DirectProfileSection({
+  details,
+  workspaceId,
+}: {
+  details: DirectDetails;
+  workspaceId: string;
+}) {
   const profile = details.profile;
   const color = avatarColorFor(profile.userId);
   const presence = usePresence(profile.userId, presenceTargetKey("dm", details.conversationId));
@@ -576,17 +588,15 @@ function DirectProfileSection({ details }: { details: DirectDetails }) {
         aria-hidden="true"
         data-testid="chat-details-profile-avatar"
       >
-        {profile.avatarUrl ? (
-          <img
-            className="chat-details__avatar-img"
-            src={profile.avatarUrl}
-            alt=""
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          initialsFrom(profile.displayName)
-        )}
-        <PresenceDot state={presence} size="lg" />
+        <UserAvatar
+          userId={profile.userId}
+          workspaceId={workspaceId}
+          displayName={profile.displayName}
+          avatarUrl={profile.avatarUrl}
+          presence={presence}
+          size="lg"
+          imageClassName="chat-details__avatar-img"
+        />
       </span>
 
       <p className="chat-details__profile-name" data-testid="chat-details-profile-name">
@@ -719,6 +729,7 @@ interface PeopleView {
   roster: ChannelRoster | null;
   rosterState: ConversationDetailsState["roster"];
   context: RosterContext;
+  workspaceId: string;
   removal?: ParticipantRemoval;
 }
 
@@ -746,17 +757,17 @@ const peopleSectionMessages = {
  * — a cast would assert the same thing without the type system checking it.
  */
 function peopleContent(view: PeopleView): ExpandableSectionContent {
-  const { kind, details, roster, rosterState, context, removal } = view;
+  const { kind, details, roster, rosterState, context, workspaceId, removal } = view;
   const words = peopleSectionMessages[kind];
   if (details.status === "error") return { status: "error", message: words.error };
   if (details.status !== "ready") return { status: "loading", message: words.loading };
   if (details.data.kind === "group") {
-    return groupParticipantsContent(details.data, context, removal);
+    return groupParticipantsContent(details.data, context, workspaceId, removal);
   }
   if (details.data.kind === "direct") return { status: "loading", message: words.loading };
   if (rosterState.status === "loading") return { status: "loading", message: words.loading };
   if (rosterState.status === "error" || !roster) return { status: "error", message: words.error };
-  return channelRosterContent(roster, context, removal);
+  return channelRosterContent(roster, context, workspaceId, removal);
 }
 
 /**
@@ -887,14 +898,20 @@ function RecentFilesSection({ files, emptyText }: { files: FilesSection; emptyTe
  * hook recorded about the request it actually made, so a response that survived
  * a conversation switch cannot be rendered here as a profile.
  */
-function DirectBody({ details }: { details: ConversationDetailsState["details"] }) {
+function DirectBody({
+  details,
+  workspaceId = "",
+}: {
+  details: ConversationDetailsState["details"];
+  workspaceId: string;
+}) {
   if (details.status === "loading") {
     return <SectionMessage role="status">Carregando perfil…</SectionMessage>;
   }
   if (details.status === "error" || details.data.kind !== "direct") {
     return <SectionMessage role="alert">Não foi possível carregar o perfil.</SectionMessage>;
   }
-  return <DirectProfileSection details={details.data} />;
+  return <DirectProfileSection details={details.data} workspaceId={workspaceId} />;
 }
 
 type ConversationCopy = (typeof conversationCopy)[keyof typeof conversationCopy];
@@ -1190,6 +1207,7 @@ function PeopleSection({
   details,
   roster,
   currentUserId,
+  workspaceId,
   copy,
   reload,
   openDM,
@@ -1199,6 +1217,7 @@ function PeopleSection({
   /** The channel's administrable membership section (issue #469). */
   roster: ConversationDetailsState["roster"];
   currentUserId: string;
+  workspaceId: string;
   copy: ConversationCopy;
   reload: () => void;
   openDM?: DirectMessageAccess;
@@ -1316,6 +1335,7 @@ function PeopleSection({
           roster: channelRoster,
           rosterState: roster,
           context: { presence, currentUserId, openDM },
+          workspaceId,
           removal: rowRemoval,
         })}
       >
@@ -1374,6 +1394,7 @@ function PeopleSection({
 
       {pickerOpen && (
         <AddMembersDialog
+          workspaceId={workspaceId}
           target={
             kind === "channel"
               ? { kind: "channel", channelId: targetId }
@@ -1411,6 +1432,7 @@ function ConversationBody({
   files,
   roster,
   currentUserId,
+  workspaceId,
   pins,
   reload,
   onRename,
@@ -1422,6 +1444,7 @@ function ConversationBody({
   /** The channel's administrable membership (issue #469). */
   roster: ConversationDetailsState["roster"];
   currentUserId: string;
+  workspaceId: string;
   pins?: PinnedMessages;
   reload: () => void;
   onRename?: ConversationRenameAction;
@@ -1449,6 +1472,7 @@ function ConversationBody({
         details={details}
         roster={roster}
         currentUserId={currentUserId}
+        workspaceId={workspaceId}
         copy={copy}
         reload={reload}
         openDM={openDM}
@@ -1482,6 +1506,7 @@ interface ConversationDetailsPanelProps {
   state: ConversationDetailsState;
   /** Identifies the viewer by ID; a display name would be ambiguous. */
   currentUserId: string;
+  workspaceId?: string;
   /**
    * The conversation's pins (issue #896): the collection of the one usePins
    * instance the pinned bar and the timeline also read, plus the actions on it.
@@ -1533,6 +1558,7 @@ export default function ConversationDetailsPanel({
   kind,
   state,
   currentUserId,
+  workspaceId = "",
   pins,
   onRename,
   openDM,
@@ -1598,7 +1624,7 @@ export default function ConversationDetailsPanel({
 
       <div className="chat-details__body">
         {kind === "direct" ? (
-          <DirectBody details={details} />
+          <DirectBody details={details} workspaceId={workspaceId} />
         ) : (
           <ConversationBody
             kind={kind}
@@ -1606,6 +1632,7 @@ export default function ConversationDetailsPanel({
             files={files}
             roster={roster}
             currentUserId={currentUserId}
+            workspaceId={workspaceId}
             pins={pins}
             reload={state.reload}
             onRename={onRename}

@@ -29,6 +29,7 @@ export interface SidebarDetailsTarget {
 interface SidebarDetailsPanelProps {
   target: SidebarDetailsTarget | null;
   currentUserId: string;
+  workspaceId: string;
   /**
    * Resolved by the shell for *this* target, which may not be the conversation
    * that is open (issue #893). Absent whenever the target is not renameable by
@@ -65,6 +66,7 @@ interface SidebarDetailsPanelProps {
 export default function SidebarDetailsPanel({
   target,
   currentUserId,
+  workspaceId,
   onRename,
   canonicalName,
   coordinator,
@@ -104,6 +106,7 @@ export default function SidebarDetailsPanel({
       kind={target.kind}
       state={state}
       currentUserId={currentUserId}
+      workspaceId={workspaceId}
       onRename={onRename}
       openDM={access}
       onClose={onClose}

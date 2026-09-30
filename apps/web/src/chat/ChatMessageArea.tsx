@@ -538,7 +538,12 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
     onOpenAcknowledgementDetails: loadAcknowledgementDetail,
   };
 
-  const directCallBarProps = directCallBar(kind, ctx.directCallSession, activeDM?.counterpart);
+  const directCallBarProps = directCallBar(
+    kind,
+    ctx.directCallSession,
+    activeDM?.counterpart,
+    ctx.workspaceId,
+  );
 
   // Issue #475: a conversation this reader is not a member of renders nothing
   // of the conversation column — no header (name/avatar/participants), no
@@ -568,6 +573,7 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
       <div className="chat-msg-area__conversation">
         <ConversationHeader
           kind={kind}
+          workspaceId={ctx.workspaceId}
           name={resolvedName}
           counterpart={activeDM?.counterpart}
           presenceTarget={target.presenceTarget}
@@ -595,6 +601,7 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
           mentionTarget={target.mentionTarget}
           state={state}
           currentUserId={ctx.currentUserId}
+          workspaceId={ctx.workspaceId}
           actions={messageActions}
           onLoadMore={loadMore}
           onRetry={retry}
@@ -681,6 +688,7 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
       {details.showDetails && (
         <ConversationDetailsPanel
           kind={details.detailsKind ?? "channel"}
+          workspaceId={ctx.workspaceId}
           state={details.detailsState}
           currentUserId={ctx.currentUserId}
           pins={pinnedMessages}

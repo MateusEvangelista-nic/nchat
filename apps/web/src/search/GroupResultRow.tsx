@@ -19,7 +19,7 @@ export default function GroupResultRow({ result, query }: GroupResultRowProps) {
       className="global-search__result"
       onClick={() => open(`/chat/dm/${encodeURIComponent(result.id)}`)}
     >
-      <SearchAvatar seed={result.id} name={result.title} />
+      <SearchAvatar seed={result.id} name={result.title} kind="group" />
       <span className="global-search__result-body">
         <span className="global-search__result-title">
           <span className="global-search__sr-only">Grupo</span>{" "}

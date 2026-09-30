@@ -183,7 +183,11 @@ test.describe("busca global — resultados categorizados (#900)", () => {
     await expect(header.getByRole("searchbox", { name: FIELD })).toBeVisible();
     await expect(header.getByRole("img")).toHaveCount(0);
     await expect(header.locator("img, [class*='avatar']")).toHaveCount(0);
-    await expect(section(page, "Pessoas").locator("[class*='avatar']")).toHaveCount(1);
+    await expect(section(page, "Pessoas").locator(".global-search__avatar")).toHaveCount(1);
+    await expect(section(page, "Pessoas").locator(".global-search__avatar img")).toHaveAttribute(
+      "src",
+      /^data:image\/svg\+xml/,
+    );
     // The client sends the query and a limit — never who is asking.
     for (const url of requests) {
       expect([...url.searchParams.keys()].sort()).toEqual(["limit", "q"]);

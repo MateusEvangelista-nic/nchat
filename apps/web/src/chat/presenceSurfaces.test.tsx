@@ -288,6 +288,7 @@ function renderDetails() {
         kind="channel"
         state={detailsState()}
         currentUserId="user-self"
+        workspaceId="workspace-1"
         onClose={() => {}}
       />
     </MemoryRouter>,
@@ -385,6 +386,7 @@ describe("group participant roster follows presence", () => {
             reload: () => {},
           }}
           currentUserId="user-self"
+          workspaceId="workspace-1"
           openDM={openDM}
           onClose={() => {}}
         />
@@ -490,6 +492,7 @@ describe("one presence for one person", () => {
           kind="channel"
           state={detailsStateFor("user-juliane")}
           currentUserId="user-self"
+          workspaceId="workspace-1"
           onClose={() => {}}
         />
         <HeaderDM
@@ -589,6 +592,7 @@ describe("message bubbles", () => {
           emojiUsage={emptyEmojiUsage}
           onEmojiToneChange={() => {}}
           currentUserId="me"
+          workspaceId="workspace-1"
           recentReactionEmojis={[]}
           reactionMenuVisible={false}
           onReactionMenuVisibleChange={() => {}}
