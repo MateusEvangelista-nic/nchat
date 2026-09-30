@@ -91,10 +91,7 @@ describe("UserResultRow", () => {
     mockPresence.mockReturnValue("unknown");
     renderRow(<UserResultRow result={userResult({ avatarUrl: "/media/p.png" })} query="ju" />);
     expect(screen.getByRole("button")).not.toHaveTextContent("Status indisponível");
-    expect(screen.getByRole("button").querySelector("img")).toHaveAttribute(
-      "src",
-      "/media/p.png",
-    );
+    expect(screen.getByRole("button").querySelector("img")).toHaveAttribute("src", "/media/p.png");
   });
 });
 
