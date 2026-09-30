@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes, useParams } from "react-router";
+import { MemoryRouter, Outlet, Route, Routes, useParams } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mockGetOrCreateDirectDM } = vi.hoisted(() => ({
@@ -28,10 +28,26 @@ beforeEach(() => {
 });
 
 describe("UserResultRow", () => {
-  it("renders the highlighted display name and initials fallback", () => {
+  it("renders the highlighted display name and deterministic fallback", () => {
     render(
-      <MemoryRouter>
-        <UserResultRow result={makeResult()} query="alice" workspaceId="workspace-1" />
+      <MemoryRouter initialEntries={["/chat/search"]}>
+        <Routes>
+          <Route
+            path="/chat"
+            element={
+              <Outlet
+                context={{
+                  currentUserId: "current-user",
+                  workspaceId: "workspace-1",
+                  channels: [],
+                  dms: [],
+                }}
+              />
+            }
+          >
+            <Route path="search" element={<UserResultRow result={makeResult()} query="alice" />} />
+          </Route>
+        </Routes>
       </MemoryRouter>,
     );
     expect(screen.getByText("Alice", { selector: "mark" })).toBeInTheDocument();
@@ -63,10 +79,7 @@ describe("UserResultRow", () => {
     render(
       <MemoryRouter initialEntries={["/chat/search"]}>
         <Routes>
-          <Route
-            path="/chat/search"
-            element={<UserResultRow result={makeResult()} query="" workspaceId="workspace-1" />}
-          />
+          <Route path="/chat/search" element={<UserResultRow result={makeResult()} query="" />} />
           <Route path="/chat/dm/:id" element={<DMMarker />} />
         </Routes>
       </MemoryRouter>,

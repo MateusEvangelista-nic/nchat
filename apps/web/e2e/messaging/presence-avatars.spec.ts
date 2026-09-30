@@ -315,7 +315,7 @@ test.describe("Blobatar determinístico (#1016)", () => {
         },
       }),
     );
-    for (const kind of ["messages", "channels"]) {
+    for (const kind of ["v2/messages", "messages", "channels", "groups", "files"]) {
       await page.route(`**/api/search/${kind}?*`, (route) =>
         route.fulfill({
           json: {
@@ -345,8 +345,11 @@ test.describe("Blobatar determinístico (#1016)", () => {
     await expect(dmRow(page).locator("img")).toHaveAttribute("src", source!);
     await page.goto("/chat/search");
     await page.getByRole("searchbox").fill(OTHER_USER_NAME);
-    await page.getByRole("tab", { name: "Usuários" }).click();
-    await expect(page.locator(".global-search__result--user img")).toHaveAttribute("src", source!);
+    await page.getByRole("tab", { name: "Pessoas" }).click();
+    await expect(page.getByRole("tabpanel").locator(".global-search__result img")).toHaveAttribute(
+      "src",
+      source!,
+    );
     await page.screenshot({ path: testInfo.outputPath("blobatar-search.png") });
     expect(errors).toEqual([]);
     expect(externalRequests).toEqual([]);
