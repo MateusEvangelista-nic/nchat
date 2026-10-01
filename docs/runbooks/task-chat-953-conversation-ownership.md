@@ -199,3 +199,19 @@ complexity. A validação final foi reduzida por solicitação do usuário.
 - [x] Code Quality Review e Security Review separados.
 - [x] Rollout compatível e ativação explícita documentados.
 - [x] Sem push, PR ou merge automático.
+
+## Ajuste visual posterior
+
+Ownership foi ativado no banco local a pedido do usuário; a consulta diagnóstica
+confirmou zero conversas órfãs. O estado desativado mencionado no relatório
+anterior corresponde ao momento daquela entrega.
+
+O painel recebeu badges, nomes e ações alinhados ao restante do chat. O menu
+agora fica fora do scrollport para evitar cortes, fecha ao escolher uma ação,
+por Escape ou clique externo e restaura o foco. Confirmações explicam o papel
+antes do submit. Menus e diálogos portalled adotam `chat-theme`: sem essa classe,
+herdavam os tokens globais de autenticação em vez da paleta do chat.
+
+Verificação curta: sete testes de componentes passaram; lint direcionado com
+complexidade máxima 10 passou. Foi feita inspeção de painel, menu e diálogo no
+navegador local sem executar alterações de participantes.

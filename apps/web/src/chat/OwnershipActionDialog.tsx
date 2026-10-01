@@ -66,7 +66,7 @@ function ownershipActionTitle(action: Action): string {
     case "leave":
       return "Sair da conversa";
     case "role":
-      return `Tornar ${action.member.displayName} ${roleLabels[action.role].toLowerCase()}`;
+      return `Tornar ${roleLabels[action.role].toLowerCase()}`;
   }
 }
 
@@ -111,7 +111,7 @@ function OwnershipTransferFields({
           <option value="admin">Administrador</option>
         </select>
       </label>
-      <label>
+      <label className="ownership-dialog__checkbox">
         <input
           type="checkbox"
           checked={leave}
@@ -210,8 +210,9 @@ export default function OwnershipActionDialog({
   return createPortal(
     <dialog
       ref={dialog}
-      className="ownership-dialog"
+      className="ownership-dialog chat-theme"
       aria-labelledby="ownership-dialog-title"
+      aria-describedby="ownership-dialog-description"
       aria-modal="true"
       onCancel={(event) => {
         event.preventDefault();
@@ -219,33 +220,50 @@ export default function OwnershipActionDialog({
       }}
       onKeyDown={(event) => event.stopPropagation()}
     >
-      <h3 id="ownership-dialog-title">{title}</h3>
-      {action.type === "transfer" && (
-        <OwnershipTransferFields
-          busy={busy}
-          candidates={candidates}
-          target={target}
-          setTarget={setTarget}
-          actorRole={actorRole}
-          setActorRole={setActorRole}
-          leave={leave}
-          setLeave={setLeave}
-        />
+      <div className="ownership-dialog__heading">
+        <span className="ownership-dialog__icon material-symbols-outlined" aria-hidden="true">
+          {ownershipActionIcon(action)}
+        </span>
+        <h3 id="ownership-dialog-title">{title}</h3>
+      </div>
+      <div id="ownership-dialog-description">
+        <OwnershipRoleDescription action={action} />
+        {action.type === "transfer" && (
+          <OwnershipTransferFields
+            busy={busy}
+            candidates={candidates}
+            target={target}
+            setTarget={setTarget}
+            actorRole={actorRole}
+            setActorRole={setActorRole}
+            leave={leave}
+            setLeave={setLeave}
+          />
+        )}
+        {action.type === "leave" && (
+          <OwnershipLeaveWarning
+            lastOwner={props.ownership.leavePreview.lastOwner}
+            blocked={blocked}
+            successor={successor}
+          />
+        )}
+      </div>
+      {error && (
+        <p className="ownership-dialog__error" role="alert">
+          {error}
+        </p>
       )}
-      {action.type === "leave" && (
-        <OwnershipLeaveWarning
-          lastOwner={props.ownership.leavePreview.lastOwner}
-          blocked={blocked}
-          successor={successor}
-        />
-      )}
-      {error && <p role="alert">{error}</p>}
       <div className="ownership-dialog__buttons">
         <button type="button" autoFocus disabled={busy} onClick={onClose}>
           Cancelar
         </button>
         <button
           type="button"
+          className={
+            action.type === "leave"
+              ? "ownership-dialog__confirm ownership-dialog__confirm--danger"
+              : "ownership-dialog__confirm"
+          }
           disabled={busy || blocked || (action.type === "transfer" && target === "")}
           onClick={() => void submit()}
         >
@@ -254,5 +272,33 @@ export default function OwnershipActionDialog({
       </div>
     </dialog>,
     document.body,
+  );
+}
+
+const roleDescriptions = {
+  owner:
+    "Poderá gerenciar papéis, remover participantes e transferir a propriedade da conversa. Você mantém seu papel atual.",
+  admin:
+    "Poderá editar o nome e remover membros comuns. Não poderá alterar papéis nem administrar outros administradores ou proprietários.",
+  member:
+    "Poderá participar da conversa e adicionar pessoas quando permitido. Não poderá editar o nome, remover participantes ou alterar papéis.",
+};
+
+function ownershipActionIcon(action: Action) {
+  return action.type === "leave" ? "logout" : "key";
+}
+
+function OwnershipRoleDescription({ action }: { action: Action }) {
+  if (action.type !== "role") return null;
+  return (
+    <>
+      <div className="ownership-dialog__person">
+        <strong>{action.member.displayName}</strong>
+        <span>
+          {roleLabels[action.member.role]} → {roleLabels[action.role]}
+        </span>
+      </div>
+      <p>{roleDescriptions[action.role]}</p>
+    </>
   );
 }

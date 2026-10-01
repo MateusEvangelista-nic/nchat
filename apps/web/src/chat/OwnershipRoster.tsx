@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import OwnershipActionDialog from "./OwnershipActionDialog";
+import OwnershipMemberMenu from "./OwnershipMemberMenu";
 import { type OwnershipAction as Action, roleLabels } from "./ownershipPresentation";
 import { emptyTargetPresence, selectTargetPresence, type TargetPresence } from "./presence";
 import { UserAvatar } from "./UserAvatar";
@@ -55,21 +56,28 @@ function OwnershipIdentity({
   onOpenDM?: (userId: string) => void;
 }) {
   return (
-    <span>
-      {onOpenDM && !isSelf ? (
-        <button
-          type="button"
-          className="ownership-roster__identity"
-          onClick={() => onOpenDM(member.userId)}
-        >
-          {member.displayName}
-        </button>
-      ) : (
-        member.displayName
-      )}
-      {isSelf && <span> [Você]</span>}
+    <span className="ownership-roster__person">
+      <span className="ownership-roster__name">
+        {onOpenDM && !isSelf ? (
+          <button
+            type="button"
+            className="ownership-roster__identity"
+            onClick={() => onOpenDM(member.userId)}
+          >
+            {member.displayName}
+          </button>
+        ) : (
+          member.displayName
+        )}
+        {isSelf && <span className="ownership-roster__self"> [Você]</span>}
+      </span>
       {member.role !== "member" && (
-        <small className="ownership-roster__badge">{roleLabels[member.role]}</small>
+        <small className={`ownership-roster__badge ownership-roster__badge--${member.role}`}>
+          <span className="material-symbols-outlined" aria-hidden="true">
+            {member.role === "owner" ? "key" : "shield"}
+          </span>
+          {roleLabels[member.role]}
+        </small>
       )}
     </span>
   );
@@ -109,25 +117,26 @@ function OwnershipRow({
       </span>
       <OwnershipIdentity member={member} isSelf={isSelf} onOpenDM={onOpenDM} />
       {canAct && (
-        <details className="ownership-roster__actions">
-          <summary aria-label={`Ações de ${member.displayName}`}>⋮</summary>
-          <div>
-            <RoleActions
-              member={member}
-              onRole={(role) => onAction({ type: "role", member, role })}
-            />
-            {isSelf && member.actions.transfer === true && (
-              <button type="button" onClick={() => onAction({ type: "transfer" })}>
-                Transferir minha propriedade
-              </button>
-            )}
-            {member.actions.remove === true && (
-              <button type="button" onClick={(event) => onRemove(member, event.currentTarget)}>
-                Remover membro
-              </button>
-            )}
-          </div>
-        </details>
+        <OwnershipMemberMenu label={`Ações de ${member.displayName}`}>
+          <RoleActions
+            member={member}
+            onRole={(role) => onAction({ type: "role", member, role })}
+          />
+          {isSelf && member.actions.transfer === true && (
+            <button type="button" onClick={() => onAction({ type: "transfer" })}>
+              Transferir minha propriedade
+            </button>
+          )}
+          {member.actions.remove === true && (
+            <button
+              type="button"
+              className="ownership-member-menu__danger"
+              onClick={() => onRemove(member, document.activeElement as HTMLElement)}
+            >
+              Remover membro
+            </button>
+          )}
+        </OwnershipMemberMenu>
       )}
     </li>
   );
@@ -164,7 +173,11 @@ export default function OwnershipRoster({ addButtonRef, ...props }: Props) {
         <div className="ownership-roster__filters">
           <label>
             Buscar participante
-            <input value={search} onChange={(event) => setSearch(event.target.value)} />
+            <input
+              placeholder="Nome do participante"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
           </label>
           <label>
             Papel
@@ -193,6 +206,9 @@ export default function OwnershipRoster({ addButtonRef, ...props }: Props) {
           />
         ))}
       </ul>
+      {visible.length === 0 && (
+        <p className="ownership-roster__empty">Nenhum participante encontrado.</p>
+      )}
       {!expanded && props.ownership.members.length > 5 && (
         <button
           type="button"
@@ -215,7 +231,7 @@ export default function OwnershipRoster({ addButtonRef, ...props }: Props) {
       {props.ownership.capabilities.leave === true && (
         <button
           type="button"
-          className="chat-details__wide-action"
+          className="ownership-roster__leave"
           onClick={() => openAction({ type: "leave" })}
         >
           Sair da conversa
