@@ -100,8 +100,8 @@ SELECT count(*) FROM chat.ownership_outbox WHERE published_at IS NULL;
 Os testes de integração de chat usam exclusivamente a base `ownership_953_test`
 e recusam resets em qualquer outro nome. Configurar `OWNERSHIP_TEST_DATABASE_URL`
 e executar `go test ./internal/storage -run 'TestOwnership.*PostgreSQL'` em
-`services/chat-service`. O gate de integração cria uma base separada para essa
-família. Auth e admin incluem testes dos stores reais de suspensão/rollback,
+`services/chat-service`. O gate de cobertura cria uma base separada para essa
+família e combina seu perfil com a cobertura unitária e Link Safety. Auth e admin incluem testes dos stores reais de suspensão/rollback,
 ativados pelos respectivos `AUTH_TEST_DATABASE_URL` e `ADMIN_TEST_DATABASE_URL`.
 
 Os testes de componentes cobrem capabilities, filtros, transferência, retry,
@@ -215,3 +215,30 @@ herdavam os tokens globais de autenticação em vez da paleta do chat.
 Verificação curta: sete testes de componentes passaram; lint direcionado com
 complexidade máxima 10 passou. Foi feita inspeção de painel, menu e diálogo no
 navegador local sem executar alterações de participantes.
+
+## Integração com develop e correções do CI
+
+A branch local incorporou o merge remoto `12d6b62`, que contém
+`upstream/develop` (`2f9be02`), sem conflitos. A verificação curta depois do merge
+passou: nove testes de ownership, dois de criação de grupos e typecheck.
+
+A execução CI `36920556170` revelou três falhas corrigidas:
+
+- Adição e remoção no console usavam isolamentos diferentes. Os dois writers
+  agora usam transações serializáveis e o mesmo retry limitado. Os testes
+  PostgreSQL de contagens concorrentes passaram em três execuções direcionadas.
+- A cobertura não media a suíte PostgreSQL de ownership. Essa suíte passou a ser
+  executada pelo gate de cobertura, numa base exclusiva, sem duplicação no gate
+  de integração. Perfis existentes do CI combinados com testes direcionados
+  corrigidos mediram 90,0%, mantendo o threshold de 90%.
+- O contrato antigo de detalhes não previa invalidação de papéis sem rename.
+  O painel revalida capabilities mesmo com nome igual e evita um segundo reload
+  quando a projeção já contém o nome canônico; o callback duplicado do header
+  foi removido. Os seis testes de foco/convergência passaram.
+
+Foram acrescentadas verificações curtas de rejeição de entrada, falha de banco,
+rollback, fallback de compatibilidade e replay sem duplicação de evento.
+
+O E2E direcionado também identificou que o texto do badge incluía o nome do
+ícone decorativo no seletor textual. O rótulo foi separado em um elemento
+próprio, mantendo o ícone com aria-hidden.

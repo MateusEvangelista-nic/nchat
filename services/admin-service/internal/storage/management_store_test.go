@@ -1096,6 +1096,7 @@ func TestListChannels_BindsTheAdministeredByFilter(t *testing.T) {
 func TestAddChannelMembers_AdmitsEligibleTargets(t *testing.T) {
 	mock := newMock(t)
 	mock.ExpectBegin()
+	mock.ExpectExec("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE").WillReturnResult(pgxmock.NewResult("SET", 0))
 	mock.ExpectQuery(`FROM chat.channels\s+WHERE id`).WithArgs(userA).
 		WillReturnRows(pgxmock.NewRows([]string{"workspace_id", "is_general"}).
 			AddRow(userB, false))
@@ -1127,6 +1128,7 @@ func TestAddChannelMembers_AdmitsEligibleTargets(t *testing.T) {
 func TestAddChannelMembers_IneligibleTargetRollsTheWholeAddBack(t *testing.T) {
 	mock := newMock(t)
 	mock.ExpectBegin()
+	mock.ExpectExec("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE").WillReturnResult(pgxmock.NewResult("SET", 0))
 	mock.ExpectQuery(`FROM chat.channels\s+WHERE id`).WithArgs(userA).
 		WillReturnRows(pgxmock.NewRows([]string{"workspace_id", "is_general"}).
 			AddRow(userB, false))
@@ -1148,6 +1150,7 @@ func TestAddChannelMembers_IneligibleTargetRollsTheWholeAddBack(t *testing.T) {
 func TestAddChannelMembers_RepeatAddsNobody(t *testing.T) {
 	mock := newMock(t)
 	mock.ExpectBegin()
+	mock.ExpectExec("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE").WillReturnResult(pgxmock.NewResult("SET", 0))
 	mock.ExpectQuery(`FROM chat.channels\s+WHERE id`).WithArgs(userA).
 		WillReturnRows(pgxmock.NewRows([]string{"workspace_id", "is_general"}).
 			AddRow(userB, false))
@@ -1170,6 +1173,7 @@ func TestAddChannelMembers_RepeatAddsNobody(t *testing.T) {
 func TestAddChannelMembers_UnknownChannel(t *testing.T) {
 	mock := newMock(t)
 	mock.ExpectBegin()
+	mock.ExpectExec("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE").WillReturnResult(pgxmock.NewResult("SET", 0))
 	mock.ExpectQuery(`FROM chat.channels\s+WHERE id`).WithArgs(userA).WillReturnError(pgx.ErrNoRows)
 	mock.ExpectRollback()
 

@@ -272,7 +272,7 @@ jobs:
           POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
         run: |
           set -euo pipefail
-          for database in admin_test auth_test media_test search_test ownership_953_test; do
+          for database in admin_test auth_test media_test search_test; do
             docker exec "$POSTGRES_CONTAINER" createdb -U nchat "$database"
           done
       - name: Test against PostgreSQL
@@ -282,7 +282,6 @@ jobs:
           AUTH_TEST_DATABASE_URL: postgresql://nchat:REPLACE_ME@localhost:5432/auth_test?sslmode=disable
           MEDIA_TEST_DATABASE_URL: postgresql://nchat:REPLACE_ME@localhost:5432/media_test?sslmode=disable
           SEARCH_TEST_DATABASE_URL: postgresql://nchat:REPLACE_ME@localhost:5432/search_test?sslmode=disable
-          OWNERSHIP_TEST_DATABASE_URL: postgresql://nchat:REPLACE_ME@localhost:5432/ownership_953_test?sslmode=disable
         run: bash scripts/ci/go-integration-test.sh
 
   # Kept separate from Tests / Go Unit because it is a different measurement, not
@@ -309,6 +308,7 @@ jobs:
       # CHAT_TEST_DATABASE_URL nor FILE_TEST_DATABASE_URL, so a plain
       # `go test ./...` keeps skipping every opt-in PostgreSQL suite.
       LINK_SAFETY_TEST_DATABASE_URL: postgresql://nchat:REPLACE_ME@localhost:5432/nchat_test?sslmode=disable
+      OWNERSHIP_COVERAGE_DATABASE_URL: postgresql://nchat:REPLACE_ME@localhost:5432/ownership_953_test?sslmode=disable
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -321,6 +321,10 @@ jobs:
             libs/go/*/go.mod
       # The measured suites read the schema the real migrations produce, across
       # both the chat and files domains, so the official runner applies them.
+      - name: Create the isolated ownership coverage database
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: docker exec "$POSTGRES_CONTAINER" createdb -U nchat ownership_953_test
       - name: Apply migrations to the coverage database
         run: bash scripts/db/migrate.sh up
         env:

@@ -76,7 +76,7 @@ function OwnershipIdentity({
           <span className="material-symbols-outlined" aria-hidden="true">
             {member.role === "owner" ? "key" : "shield"}
           </span>
-          {roleLabels[member.role]}
+          <span>{roleLabels[member.role]}</span>
         </small>
       )}
     </span>

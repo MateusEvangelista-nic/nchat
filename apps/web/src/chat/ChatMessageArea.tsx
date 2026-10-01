@@ -272,7 +272,6 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
     // Passed directly: useMessages holds this callback in a ref, so a new
     // identity each render does not restart the socket or its subscriptions.
     onMembersAdded: reloadOpenDetails,
-    onConversationUpdated: reloadOpenDetails,
     // A member was *removed*, renamed, or any other conversation event landed
     // (issue #469). The server publishes conversation.event and nothing else
     // for a removal — there is no members.removed — and the frame names only

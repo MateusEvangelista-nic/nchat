@@ -539,10 +539,16 @@ const lockChannelQuery = `
 // a member afterwards, and no message becomes reachable from anywhere in this
 // service.
 func (s *PGXChannelDirectoryStore) AddChannelMembers(ctx context.Context, channelID string, userIDs []string) (domain.ChannelMembershipChange, error) {
+	return conversationownership.Retry(ctx, func() (domain.ChannelMembershipChange, error) {
+		return s.addChannelMembersOnce(ctx, channelID, userIDs)
+	})
+}
+
+func (s *PGXChannelDirectoryStore) addChannelMembersOnce(ctx context.Context, channelID string, userIDs []string) (domain.ChannelMembershipChange, error) {
 	if s == nil || s.pool == nil {
 		return domain.ChannelMembershipChange{}, domain.ErrUnavailable
 	}
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.beginMembershipTransaction(ctx)
 	if err != nil {
 		return domain.ChannelMembershipChange{}, fmt.Errorf("begin add channel members: %w", err)
 	}
@@ -621,14 +627,11 @@ func (s *PGXChannelDirectoryStore) removeChannelMemberOnce(ctx context.Context, 
 	if s == nil || s.pool == nil {
 		return domain.ChannelMembershipChange{}, domain.ErrUnavailable
 	}
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.beginMembershipTransaction(ctx)
 	if err != nil {
 		return domain.ChannelMembershipChange{}, fmt.Errorf("begin remove channel member: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	if _, err := tx.Exec(ctx, conversationownership.SerializableSQL); err != nil {
-		return domain.ChannelMembershipChange{}, err
-	}
 
 	workspaceID, err := lockChannelForOwnershipRemoval(ctx, tx, channelID)
 	if err != nil {
@@ -658,6 +661,20 @@ func (s *PGXChannelDirectoryStore) removeChannelMemberOnce(ctx context.Context, 
 		return domain.ChannelMembershipChange{}, fmt.Errorf("commit remove channel member: %w", err)
 	}
 	return change, nil
+}
+
+// All membership writers use the same isolation so a waiter retries with a
+// fresh snapshot before reporting the total produced by the serialized write.
+func (s *PGXChannelDirectoryStore) beginMembershipTransaction(ctx context.Context) (pgx.Tx, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := tx.Exec(ctx, conversationownership.SerializableSQL); err != nil {
+		_ = tx.Rollback(ctx)
+		return nil, err
+	}
+	return tx, nil
 }
 
 // listMemberCandidatesQuery offers the people who could be added to a channel.
