@@ -49,6 +49,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 # suite is not even compiled.
 SUITES=(
   "services/chat-service|CHAT_TEST_DATABASE_URL|./internal/storage|-run ^TestChannelMembershipContractPostgreSQL_"
+  "services/chat-service|OWNERSHIP_TEST_DATABASE_URL|./internal/storage|-run ^TestOwnership.*PostgreSQL$"
   "services/admin-service|ADMIN_TEST_DATABASE_URL|./internal/storage|"
   "services/auth-service|AUTH_TEST_DATABASE_URL|./internal/storage|"
   "services/media-service|MEDIA_TEST_DATABASE_URL|./internal/storage|-tags integration"

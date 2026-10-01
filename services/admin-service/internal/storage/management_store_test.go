@@ -233,6 +233,8 @@ func TestGetUser_NotFound(t *testing.T) {
 func TestUpdateUserStatus_ValidatesUnderTheLockAndRevokesSessions(t *testing.T) {
 	mock := newMock(t)
 	mock.ExpectBegin()
+	mock.ExpectExec(`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`).WillReturnResult(pgxmock.NewResult("SET", 0))
+	mock.ExpectQuery(`SELECT to_regprocedure`).WillReturnRows(pgxmock.NewRows([]string{"available"}).AddRow(false))
 	mock.ExpectQuery(`FOR UPDATE`).WithArgs(userA).
 		WillReturnRows(pgxmock.NewRows([]string{"status"}).AddRow("active"))
 	// The authorization anchor: a privileged write in flight must not commit
@@ -262,6 +264,8 @@ func TestUpdateUserStatus_ValidatesUnderTheLockAndRevokesSessions(t *testing.T) 
 func TestUpdateUserStatus_ActivationRestoresNothing(t *testing.T) {
 	mock := newMock(t)
 	mock.ExpectBegin()
+	mock.ExpectExec(`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`).WillReturnResult(pgxmock.NewResult("SET", 0))
+	mock.ExpectQuery(`SELECT to_regprocedure`).WillReturnRows(pgxmock.NewRows([]string{"available"}).AddRow(false))
 	mock.ExpectQuery(`FOR UPDATE`).WithArgs(userA).
 		WillReturnRows(pgxmock.NewRows([]string{"status"}).AddRow("suspended"))
 	mock.ExpectExec(`SELECT 1 FROM auth.admin_principals`).WithArgs(userA).
@@ -288,6 +292,8 @@ func TestUpdateUserStatus_ActivationRestoresNothing(t *testing.T) {
 func TestUpdateUserStatus_TransitionOntoTheSameStatusConflicts(t *testing.T) {
 	mock := newMock(t)
 	mock.ExpectBegin()
+	mock.ExpectExec(`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`).WillReturnResult(pgxmock.NewResult("SET", 0))
+	mock.ExpectQuery(`SELECT to_regprocedure`).WillReturnRows(pgxmock.NewRows([]string{"available"}).AddRow(false))
 	mock.ExpectQuery(`FOR UPDATE`).WithArgs(userA).
 		WillReturnRows(pgxmock.NewRows([]string{"status"}).AddRow("suspended"))
 	mock.ExpectExec(`SELECT 1 FROM auth.admin_principals`).WithArgs(userA).
@@ -303,6 +309,8 @@ func TestUpdateUserStatus_TransitionOntoTheSameStatusConflicts(t *testing.T) {
 func TestUpdateUserStatus_UnknownUser(t *testing.T) {
 	mock := newMock(t)
 	mock.ExpectBegin()
+	mock.ExpectExec(`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`).WillReturnResult(pgxmock.NewResult("SET", 0))
+	mock.ExpectQuery(`SELECT to_regprocedure`).WillReturnRows(pgxmock.NewRows([]string{"available"}).AddRow(false))
 	mock.ExpectQuery(`FOR UPDATE`).WithArgs(userA).WillReturnError(pgx.ErrNoRows)
 	mock.ExpectRollback()
 
@@ -1174,9 +1182,11 @@ func TestAddChannelMembers_UnknownChannel(t *testing.T) {
 func TestRemoveChannelMember_RemovesAndCounts(t *testing.T) {
 	mock := newMock(t)
 	mock.ExpectBegin()
+	mock.ExpectExec(`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`).WillReturnResult(pgxmock.NewResult("SET", 0))
 	mock.ExpectQuery(`FROM chat.channels\s+WHERE id`).WithArgs(userA).
 		WillReturnRows(pgxmock.NewRows([]string{"workspace_id", "is_general"}).
 			AddRow(userB, false))
+	mock.ExpectQuery(`SELECT to_regprocedure`).WillReturnRows(pgxmock.NewRows([]string{"available"}).AddRow(false))
 	mock.ExpectExec(`DELETE FROM chat.channel_members`).WithArgs(userA, userB).
 		WillReturnResult(pgxmock.NewResult("DELETE", 1))
 	mock.ExpectQuery(`count\(\*\) FROM chat.channel_members`).WithArgs(userA).
@@ -1198,9 +1208,11 @@ func TestRemoveChannelMember_RemovesAndCounts(t *testing.T) {
 func TestRemoveChannelMember_IsIdempotent(t *testing.T) {
 	mock := newMock(t)
 	mock.ExpectBegin()
+	mock.ExpectExec(`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`).WillReturnResult(pgxmock.NewResult("SET", 0))
 	mock.ExpectQuery(`FROM chat.channels\s+WHERE id`).WithArgs(userA).
 		WillReturnRows(pgxmock.NewRows([]string{"workspace_id", "is_general"}).
 			AddRow(userB, false))
+	mock.ExpectQuery(`SELECT to_regprocedure`).WillReturnRows(pgxmock.NewRows([]string{"available"}).AddRow(false))
 	mock.ExpectExec(`DELETE FROM chat.channel_members`).WithArgs(userA, userB).
 		WillReturnResult(pgxmock.NewResult("DELETE", 0))
 	mock.ExpectQuery(`count\(\*\) FROM chat.channel_members`).WithArgs(userA).
@@ -1221,6 +1233,7 @@ func TestRemoveChannelMember_IsIdempotent(t *testing.T) {
 func TestRemoveChannelMember_RefusesTheGeneralChannel(t *testing.T) {
 	mock := newMock(t)
 	mock.ExpectBegin()
+	mock.ExpectExec(`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`).WillReturnResult(pgxmock.NewResult("SET", 0))
 	mock.ExpectQuery(`FROM chat.channels\s+WHERE id`).WithArgs(userA).
 		WillReturnRows(pgxmock.NewRows([]string{"workspace_id", "is_general"}).
 			AddRow(userB, true))

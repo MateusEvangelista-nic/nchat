@@ -1,0 +1,135 @@
+.ownership-roster ul {
+  list-style: none;
+  padding: 0;
+}
+.ownership-roster__row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+}
+.ownership-roster__badge {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.ownership-roster__actions {
+  margin-left: auto;
+}
+.ownership-roster__actions summary {
+  cursor: pointer;
+  padding: 0.4rem;
+}
+.ownership-roster__actions button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 0.2rem 0;
+}
+.ownership-roster__filters label,
+.ownership-dialog label {
+  display: block;
+  margin: 0.8rem 0;
+}
+.ownership-dialog {
+  width: min(28rem, calc(100vw - 2rem));
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface, white);
+  color: var(--color-text, black);
+}
+.ownership-dialog::backdrop {
+  background: rgb(0 0 0 / 40%);
+}
+.ownership-dialog select,
+.ownership-roster input,
+.ownership-roster select {
+  max-width: 100%;
+}
+.ownership-dialog__buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.ownership-roster__identity {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.ownership-roster__avatar {
+  position: relative;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+}
+.ownership-roster__avatar .user-avatar__image {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+}
+.ownership-dialog:focus-visible,
+.ownership-roster button:focus-visible,
+.ownership-roster summary:focus-visible {
+  outline: 2px solid #7b43e8;
+  outline-offset: 2px;
+}
+
+.ownership-roster {
+  padding: 18px 0;
+  color: var(--color-ink, #24203a);
+}
+.ownership-roster__actions {
+  position: relative;
+}
+.ownership-roster__actions > div {
+  position: absolute;
+  right: 0;
+  z-index: 5;
+  min-width: min(15rem, 80vw);
+  padding: 8px;
+  border: 1px solid #d4cde3;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 8px 24px rgb(36 32 58 / 15%);
+}
+.ownership-roster__actions button,
+.ownership-dialog button {
+  padding: 8px 12px;
+  border: 1px solid #d4cde3;
+  border-radius: 6px;
+  background: #faf8fd;
+  color: #3d3550;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ownership-dialog {
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  padding: 20px;
+}
+.ownership-dialog h3 {
+  margin-top: 0;
+}
+.ownership-dialog select,
+.ownership-roster__filters input,
+.ownership-roster__filters select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #d4cde3;
+  border-radius: 6px;
+  font: inherit;
+}
+.ownership-dialog__buttons button:last-child {
+  border-color: #7529e8;
+  background: #7529e8;
+  color: white;
+}
+.ownership-dialog button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

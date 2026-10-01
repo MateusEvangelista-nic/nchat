@@ -259,7 +259,10 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
     onOwnReactionConfirmed: rememberReaction,
     onPinUpdated: reloadPins,
     // A pin.updated missed while disconnected is recovered here (issue #896).
-    onSubscriptionReady: reloadPins,
+    onSubscriptionReady: () => {
+      reloadPins();
+      reloadOpenDetails();
+    },
     onTypingUpdated: handleTypingUpdatedFromMessages,
     // Someone added participants to the open conversation (issue #398). The
     // event names nobody, so the only correct response is to refetch — which is
@@ -269,6 +272,7 @@ export default function ChatMessageArea({ kind }: ChatMessageAreaProps) {
     // Passed directly: useMessages holds this callback in a ref, so a new
     // identity each render does not restart the socket or its subscriptions.
     onMembersAdded: reloadOpenDetails,
+    onConversationUpdated: reloadOpenDetails,
     // A member was *removed*, renamed, or any other conversation event landed
     // (issue #469). The server publishes conversation.event and nothing else
     // for a removal — there is no members.removed — and the frame names only
