@@ -16,14 +16,14 @@ conhecidos são revalidados. Duplicatas ou participantes declarados acessíveis
 com contexto inconsistente negam autorização. Role do workspace só participa
 da elegibilidade de acesso; não concede autoridade local.
 
-| Capability | Decisão |
-| --- | --- |
-| Assign role | Somente OWNER; role pretendido conhecido; no-op negado; rebaixar OWNER exige outro owner ativo, inclusive em self-demotion. |
-| Remove member | Alvo diferente do actor; OWNER remove MEMBER/ADMIN, ADMIN remove MEMBER; OWNER nunca é removido. |
-| Add member | Qualquer participante acessível com role válido; preserva #705. Elegibilidade dos convidados e validação do lote continuam no fluxo existente. |
-| Transfer ownership | Elegibilidade de OWNER para outro participante acessível; nenhuma transferência executada. |
-| Leave | Estado final vazio ou com owner ativo; nenhuma sucessão automática. |
-| Edit metadata | Acesso local e permissão da operação específica fornecida pelo servidor; ownership não amplia essa permissão. |
+| Capability         | Decisão                                                                                                                                        |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Assign role        | Somente OWNER; role pretendido conhecido; no-op negado; rebaixar OWNER exige outro owner ativo, inclusive em self-demotion.                    |
+| Remove member      | Alvo diferente do actor; OWNER remove MEMBER/ADMIN, ADMIN remove MEMBER; OWNER nunca é removido.                                               |
+| Add member         | Qualquer participante acessível com role válido; preserva #705. Elegibilidade dos convidados e validação do lote continuam no fluxo existente. |
+| Transfer ownership | Elegibilidade de OWNER para outro participante acessível; nenhuma transferência executada.                                                     |
+| Leave              | Estado final vazio ou com owner ativo; nenhuma sucessão automática.                                                                            |
+| Edit metadata      | Acesso local e permissão da operação específica fornecida pelo servidor; ownership não amplia essa permissão.                                  |
 
 Guests com acesso explícito mantêm add e podem receber promoção manual. A policy
 não seleciona sucessores; os testes existentes de ownership continuam verificando
@@ -51,30 +51,30 @@ arquivos novos foram descartados.
   stamping VCS foi desabilitado, sem mudança no código.
 - Coverage de domínio: **93,2%**; todas as 11 funções/métodos de
   `conversation_policy.go`: **100% de statements**. Medido com `go test
-  ./services/chat-service/internal/domain -coverprofile=/tmp/nchat-1042-domain.cover
-  -count=1` e `go tool cover -func=/tmp/nchat-1042-domain.cover`.
+./services/chat-service/internal/domain -coverprofile=/tmp/nchat-1042-domain.cover
+-count=1` e `go tool cover -func=/tmp/nchat-1042-domain.cover`.
   Isso não equivale ao gate de coverage do serviço inteiro ou ao CI completo,
   que não foram executados nesta entrega de domínio.
 
 Complexidade medida por `gocyclo` v0.6.0 e `gocognit` v1.2.1, respectivamente:
 
-| Função/método novo | Ciclomática | Cognitiva |
-| --- | ---: | ---: |
-| valid | 6 | 2 |
-| accessible | 6 | 1 |
-| eligibleConversationWorkspaceMember | 3 | 2 |
-| participant | 8 | 10 |
-| remaining | 5 | 6 |
-| CanAssignConversationRole | 7 | 3 |
-| CanRemoveConversationMember | 7 | 4 |
-| CanAddConversationMember | 1 | 0 |
-| CanTransferConversationOwnership | 4 | 1 |
-| CanLeaveConversation | 3 | 2 |
-| CanEditConversationMetadata | 2 | 1 |
-| TestConversationPolicy | 4 | 7 |
-| conversationPolicyFixture | 2 | 1 |
-| conversationPolicyDecisions | 2 | 1 |
-| assertConversationPolicyBoundaries | 7 | 6 |
+| Função/método novo                  | Ciclomática | Cognitiva |
+| ----------------------------------- | ----------: | --------: |
+| valid                               |           6 |         2 |
+| accessible                          |           6 |         1 |
+| eligibleConversationWorkspaceMember |           3 |         2 |
+| participant                         |           8 |        10 |
+| remaining                           |           5 |         6 |
+| CanAssignConversationRole           |           7 |         3 |
+| CanRemoveConversationMember         |           7 |         4 |
+| CanAddConversationMember            |           1 |         0 |
+| CanTransferConversationOwnership    |           4 |         1 |
+| CanLeaveConversation                |           3 |         2 |
+| CanEditConversationMetadata         |           2 |         1 |
+| TestConversationPolicy              |           4 |         7 |
+| conversationPolicyFixture           |           2 |         1 |
+| conversationPolicyDecisions         |           2 |         1 |
+| assertConversationPolicyBoundaries  |           7 |         6 |
 
 `gocognit` omite funções com resultado zero. Comandos de medição:
 `go run github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0` e
