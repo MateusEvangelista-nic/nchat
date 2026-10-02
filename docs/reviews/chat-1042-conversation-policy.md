@@ -102,7 +102,8 @@ fornecer roster completo e reutilizar as decisões, evitando duplicar checks.
 
 **APROVADO no escopo preparatório.** Nenhuma vulnerabilidade confirmada no código
 novo. Revisão manual de autorização e fronteiras de identidade/workspace,
-separada da revisão de qualidade; lint inclui gosec. Dependências não alteradas.
+separada da revisão de qualidade; lint inclui gosec. O domínio não adiciona
+dependências; a atualização de segurança posterior está registrada abaixo.
 
 A policy nega membership/acesso inválido, roles desconhecidos, workspace e
 conversa divergentes, identidade ausente e duplicatas. Workspace ADMIN com role
@@ -126,3 +127,24 @@ snapshot parcial, obsoleto ou estado autorizado pelo cliente.
 Sem migrations, backfill, conversão automática de `created_by`, workspace roles
 ou `moderator`, alterações HTTP/UI, realtime, transferência executável ou E2E.
 Merge fora do escopo desta entrega.
+
+## Correções durante o monitoramento do CI
+
+- Governança: retirado o sufixo `(#1042)` do título da PR porque o checker
+  proíbe `#` em títulos Conventional Commits. Título e subjects validados pelo
+  checker do repositório; o novo CI aprovou governança.
+- Static / Repository: relatório formatado com Prettier; check local e CI
+  passaram.
+- Security / Govulncheck: a base continha OpenTelemetry SDK 1.44.0 e exporter
+  OTLP/HTTP 1.43.0, afetados por GO-2026-6505. O
+  [advisory oficial](https://github.com/open-telemetry/opentelemetry-go/security/advisories/GHSA-8wmf-6v46-5gfg)
+  indica que a versão 1.45.0 corrige exposição de configuração de exporters
+  em logs internos Info, condicionada à instalação de logger verboso.
+  SDK e exporter atualizados para 1.45.0, com sincronização de módulos e
+  checksums dos consumidores via `go work sync`; Go permanece 1.25.13.
+  O gate completo local `bash scripts/security/govulncheck.sh` passou após
+  a atualização, sem nova exceção de segurança.
+
+- `bash scripts/ci/go-test.sh`: passou para os nove módulos Go, após a
+  atualização. Testes PostgreSQL condicionais dependem do ambiente de CI;
+  a execução local não substitui os jobs de integração e coverage.
