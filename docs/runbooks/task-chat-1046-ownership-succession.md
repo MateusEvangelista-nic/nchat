@@ -159,3 +159,28 @@ preexistente. Build direcionado do chat-service, lint, vet, formatter,
 PostgreSQL e race detector estão PASS; os builds globais após o gate de cobertura
 são NÃO EXECUTADOS. Nenhuma alteração fora da #1046 foi feita para esconder
 a falha. A worktree temporária de comparação da base foi removida após a medição.
+
+## Correção do runner de segurança após publicação
+
+O CI remoto da primeira publicação passou nos testes, integração, coverage,
+race detector, E2E e builds, mas Govulncheck falhou ao baixar
+`https://vuln.go.dev/index/modules.json.gz`: `connection reset by peer`.
+O agregador `CI / Required` reprovou corretamente por depender desse scan.
+
+O runner agora faz até três tentativas com espera de 10 e 20 segundos,
+exclusivamente para erros transitórios identificados no download da base de
+vulnerabilidades. Cada tentativa sobrescreve o relatório anterior. Exit 3
+(achados) continua sendo avaliado pelo gate existente; erros de argumentos,
+carregamento e falhas persistentes continuam reprovando. Nenhum gate ou advisory
+foi desabilitado e o agregador não foi alterado.
+
+Validação: PASS nos 15 testes do gate/runner e nos 12 testes do agregador;
+PASS em `bash -n`, ShellCheck e `git diff --check`. Dois testes de comportamento
+cobrem recuperação com relatório novo e preservação de erro/achados, incluindo
+o esgotamento das três tentativas. As esperas são substituídas apenas na fixture.
+Code Quality Review: helper coeso, fluxo limitado e sem alteração de contrato.
+Security Review: retries restritos ao download, veredicto preservado e falha
+fechada após esgotamento. A correção não altera código Go ou dependências.
+
+Scan real com o runner final: PASS em todos os nove módulos, com
+`Go vulnerability gate passed.` (log `/tmp/nchat-1046-govulncheck-local-fixed.log`).
