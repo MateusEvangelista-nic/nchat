@@ -272,7 +272,7 @@ jobs:
           POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
         run: |
           set -euo pipefail
-          for database in admin_test auth_test media_test search_test; do
+          for database in admin_test auth_test media_test search_test channel_creation_test; do
             docker exec "$POSTGRES_CONTAINER" createdb -U nchat "$database"
           done
       - name: Test against PostgreSQL
@@ -282,6 +282,7 @@ jobs:
           AUTH_TEST_DATABASE_URL: postgresql://nchat:REPLACE_ME@localhost:5432/auth_test?sslmode=disable
           MEDIA_TEST_DATABASE_URL: postgresql://nchat:REPLACE_ME@localhost:5432/media_test?sslmode=disable
           SEARCH_TEST_DATABASE_URL: postgresql://nchat:REPLACE_ME@localhost:5432/search_test?sslmode=disable
+          CHANNEL_CREATION_TEST_DATABASE_URL: postgresql://nchat:REPLACE_ME@localhost:5432/channel_creation_test?sslmode=disable
         run: bash scripts/ci/go-integration-test.sh
 
   # Kept separate from Tests / Go Unit because it is a different measurement, not
@@ -549,6 +550,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # The deploy tests run a real release from before issue #798
+          # (scripts/ci/test_prod_blue_green_scripts.sh), read from history.
+          fetch-depth: 0
       - name: Setup pnpm
         uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:

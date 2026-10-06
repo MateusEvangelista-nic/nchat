@@ -2816,6 +2816,36 @@ describe("createChannel", () => {
     }
   });
 
+  it("sends the invitees and the idempotency key of a private creation (issue #1025)", async () => {
+    mockAuthFetch.mockResolvedValue({
+      data: { id: "ch-1", slug: "infra", display_name: "Infra", type: "private" },
+    });
+
+    await createChannel({
+      slug: "infra",
+      displayName: "Infra",
+      type: "private",
+      initialMemberIds: ["u-1", "u-2"],
+      idempotencyKey: "intent-1",
+    });
+
+    expect(mockAuthFetch).toHaveBeenCalledWith("/api/chat/channels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Idempotency-Key": "intent-1" },
+      body: JSON.stringify({
+        slug: "infra",
+        display_name: "Infra",
+        type: "private",
+        initial_member_ids: ["u-1", "u-2"],
+      }),
+      signal: undefined,
+    });
+    const [, init] = mockAuthFetch.mock.calls[0] as [string, { body: string }];
+    for (const forbidden of ["role", "owner", "created_by", "workspace_id"]) {
+      expect(init.body).not.toContain(forbidden);
+    }
+  });
+
   it("propagates the API status so the caller can tell a denial from a failure", async () => {
     mockAuthFetch.mockRejectedValue(new ApiRequestError(403, "forbidden", "forbidden"));
     await expect(
@@ -3577,11 +3607,35 @@ describe("fetchDirectProfile (issue #443)", () => {
         avatarUrl: "/media/juliane.png",
         email: "juliane@nic.test",
         presence: "online",
+        lastSeenAt: undefined,
         jobTitle: undefined,
         department: undefined,
         timezone: undefined,
       },
     });
+  });
+
+  it("reads the server's last seen for an offline person, and nothing it cannot parse (issue #798)", async () => {
+    for (const [raw, expected] of [
+      ["2026-10-01T15:42:00Z", Date.parse("2026-10-01T15:42:00Z")],
+      ["yesterday", undefined],
+      [42, undefined],
+    ] as const) {
+      mockAuthFetch.mockResolvedValueOnce({
+        data: {
+          kind: "direct",
+          conversation_id: "conv-1",
+          profile: {
+            user_id: "u-other",
+            display_name: "Juliane",
+            presence: "offline",
+            last_seen_at: raw,
+          },
+        },
+      });
+      const details = await fetchDirectProfile("conv-1");
+      expect(details.kind === "direct" && details.profile.lastSeenAt).toBe(expected ?? undefined);
+    }
   });
 
   it("reads the professional fields when the server sends them", async () => {
