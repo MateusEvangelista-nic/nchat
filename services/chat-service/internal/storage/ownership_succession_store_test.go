@@ -18,7 +18,7 @@ func expectSuccessionSnapshot(mock pgxmock.PgxPoolIface, candidate string) {
 	mock.ExpectExec("SELECT chat.lock_ownership_conversation").WithArgs("dm", ownershipDM).WillReturnResult(pgxmock.NewResult("SELECT", 1))
 	mock.ExpectQuery("SELECT enabled FROM chat.ownership_rollout").WillReturnRows(pgxmock.NewRows([]string{"enabled"}).AddRow(true))
 	mock.ExpectQuery("SELECT p.user_id::text,p.role,p.joined_at,p.guest").WithArgs("dm", ownershipDM, ownershipWS, ownershipA).WillReturnRows(pgxmock.NewRows([]string{"user", "role", "joined", "guest", "name", "avatar"}).AddRow(ownershipA, domain.ConversationOwner, time.Now(), false, "A", "").AddRow(candidate, domain.ConversationMember, time.Now(), false, "Candidate", ""))
-	mock.ExpectQuery("WITH remaining AS").WithArgs(input.Scope.WorkspaceID, input.Scope.Kind, input.Scope.ConversationID, ownershipA).WillReturnRows(pgxmock.NewRows([]string{"members", "owners", "candidate"}).AddRow(1, 0, candidate))
+	mock.ExpectQuery("WITH affected AS").WithArgs(input.Scope.WorkspaceID, input.Scope.Kind, input.Scope.ConversationID, ownershipA, false).WillReturnRows(pgxmock.NewRows([]string{"workspace", "kind", "conversation", "members", "owners", "candidate"}).AddRow(input.Scope.WorkspaceID, input.Scope.Kind, input.Scope.ConversationID, 1, 0, candidate))
 }
 
 func expectSuccessionPromotion(mock pgxmock.PgxPoolIface, candidate string) *pgxmock.ExpectedExec {
