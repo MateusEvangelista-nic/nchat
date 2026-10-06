@@ -199,7 +199,7 @@ type successionBarrierTx struct {
 }
 
 func (tx *successionBarrierTx) Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
-	if !strings.Contains(sql, "SELECT chat.lock_ownership_conversation") {
+	if !strings.Contains(sql, "SELECT chat.lock_ownership_conversation") && !strings.Contains(sql, "SELECT chat.lock_user_ownership_conversations") {
 		return tx.Tx.Exec(ctx, sql, args...)
 	}
 	if !tx.pool.after {
