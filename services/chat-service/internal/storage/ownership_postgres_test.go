@@ -358,8 +358,10 @@ func TestOwnershipActivationRejectsGuestOnlyOrphanPostgreSQL(t *testing.T) {
 func TestOwnershipRejoinRenewsSeniorityPostgreSQL(t *testing.T) {
 	pool := ownershipPool(t)
 	enableOwnership(t, pool)
+	ownershipExec(t, pool, `SELECT chat.assign_ownership('dm',$1,$2,'admin',$3,'manual')`, ownershipDM, ownershipC, ownershipA)
 	ownershipExec(t, pool, `UPDATE chat.dm_members SET status='left',left_at=now() WHERE conversation_id=$1 AND user_id=$2`, ownershipDM, ownershipC)
 	ownershipExec(t, pool, `UPDATE chat.dm_members SET status='active',left_at=NULL WHERE conversation_id=$1 AND user_id=$2`, ownershipDM, ownershipC)
+	assertOwnershipRole(t, pool, "dm", ownershipDM, ownershipC, "member")
 	store := storage.NewPGXOwnershipStore(pool)
 	_, err := store.Mutate(t.Context(), storage.OwnershipMutation{Scope: storage.OwnershipScope{WorkspaceID: ownershipWS, Kind: "dm", ConversationID: ownershipDM, ActorID: ownershipA}, Operation: "leave"})
 	if err != nil {
