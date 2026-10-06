@@ -187,9 +187,89 @@ A revisão não constitui pentest da aplicação inteira.
   na base; não foi reduzido o gate nem ampliada a matriz para elevar cobertura.
 - PASS: coverage gates de platform (92,6%), admin (91,0%) e auth (90,8%).
 - Commit local: `feat(chat): preserve ownership on eligibility invalidation`.
-- Push: AGUARDANDO APROVAÇÃO. PR e merge não realizados.
+- Push: NÃO REALIZADO. PR e merge não realizados.
 
 O container descartável foi parado e preservado para reprodução. Pendência de
 entrega: gate global permanece FAIL pelo threshold descrito acima. A validação
 funcional e concorrente da #1047 passou, sem estado órfão observado. Os checks de
 famílias PostgreSQL não selecionadas não são evidência de integração desta task.
+
+## Revisão e testes unitários após o commit inicial
+
+Escopo: revisão do delta `69a792c0b4b84f83ba129297e9361ec9cca55e9b`,
+sem mudança em código de produção, contratos, migrations ou threshold.
+Nenhum bug real encontrado; nenhuma feature de disable/delete implementada.
+
+### Transaction boundary
+
+Caso A para suspensão global via auth/admin: `updateUserStatusOnce` abre uma
+única `pgx.Tx`; `ownershipSuccessionSession` captura exatamente essa transação
+em ambos os callbacks. Seleção, promoção, UPDATE de status, revogação de
+sessões/refresh e consumo dos códigos OIDC precedem o mesmo Commit. O coordinator
+não abre outra transação. Não existe chamada entre serviços nessa operação;
+compensação não é necessária. Compartilhar PostgreSQL, isoladamente, não seria
+prova: a prova é a identidade da transação no código, a ordem das expectativas
+unitárias e o rollback real dos testes PostgreSQL, inclusive em falha no commit.
+
+A invalidação de membership, sem API de serviço própria, é protegida pelos
+triggers no mesmo transaction do comando SQL. Os guards continuam protegendo
+writers diretos. A ordem de locks está explícita em
+`000061_conversation_ownership_guards.up.sql`: `(kind, id)`; o selector compartilhado
+ordena `(kind, conversation_id)`. Não há ordenação pura em Go para testar.
+
+### Testes úteis
+
+- Dois testes table-driven do coordinator: snapshots sem conversa afetada,
+  outro owner, conversa sem participantes restantes, sucessor retornado pelo
+  banco, várias conversas e C1 com candidato/C2 com owner/C3 sem candidato.
+  Esse último snapshot falha antes de qualquer promoção. Erros de query, Scan,
+  Rows.Err e promoção preservam o erro e impedem writes posteriores. O cursor
+  fecha antes de escrever na mesma conexão transacional.
+- Um teste table-driven de admin: falha na revogação de sessão, na invalidação
+  OIDC ou no Commit retorna resultado vazio e solicita rollback, sem relatar
+  revogação como sucesso. O mock prova coordenação; PostgreSQL prova rollback.
+- Testes existentes de suspensão/reativação adaptados com ownership disponível:
+  promoção antes da suspensão; reativação sem sucessão nem restauração de acesso.
+  O teste existente de session-only revoke verifica as expectativas completas,
+  sem chamada ao coordinator.
+- API admin: cinco casos adicionados à tabela de campos desconhecidos, recusando
+  `successor_user_id`, `force_role`, `owner_count`, `conversation_role`,
+  `current_owner` antes do serviço. API auth bootstrap: um teste table-driven
+  prova que esses campos são ignorados e somente caller/target/status chegam ao
+  contrato existente, que não aceita autoridade de ownership.
+
+Não foram duplicadas as provas SQL de seleção ADMIN/MEMBER, workspace incorreto,
+cross-workspace, workspace disabled ou locks reais. Retry 40001/40P01,
+recarregamento de estado e erro não retryable já tinham testes diretos.
+Sem participante restante, o coordinator preserva a semântica de conversa vazia;
+sem candidato com participantes restantes, retorna P0953/fail-closed.
+
+### Coverage e validação
+
+Pacotes storage medidos antes/depois com covermode atomic: admin 84,0% → 85,2%;
+auth 89,6% → 89,6%; chat 70,1% → 70,1%. Pacote conversationownership:
+33,3% → 97,6%; Succeed, Invalidate, succeed e selectSuccessions: 100%.
+O único statement restante no coordinator é Error(), deliberadamente sem teste
+trivial. Perfis `/tmp/nchat-1047-review-before.cover`,
+`/tmp/nchat-1047-review-after.cover` e perfis finais de platform/admin.
+
+Chat inteiro, mesmos pacotes não-cmd do gate oficial: 11.560/13.407 = 86,224%,
+inalterado por estes testes. Base oficial: 11.562/13.409 = 86,226%; delta
+−0,002 p.p., sem regressão material. Perfil `/tmp/nchat-1047-review-chat.cover`.
+`make ci` não foi repetido nesta revisão: a última execução documentada acima
+continua FAIL exclusivamente pelo threshold global preexistente de 90%.
+
+PASS: testes direcionados, pacotes afetados, PostgreSQL auth/admin/chat existentes
+com race detector, concorrência e rollback; race dos pacotes com testes novos;
+formatter; lint platform/auth/admin; vet dos quatro módulos e build dos três
+serviços. Logs `/tmp/nchat-1047-review-{auth-pg,admin-pg,chat-pg,units-race}.log`.
+
+Code quality review separado: testes table-driven legíveis, fixtures reutilizadas,
+sem simular seleção SQL/locks nem duplicar integração; SRP preservado; zero novos
+smells confirmados. gocyclo/gocognit: novas funções com máximos 5/10; funções
+existentes alteradas também ≤10. Nenhuma refatoração de produção.
+Security review separado: escopo SQL e guards preservam cross-workspace,
+fail-closed e autoridade de seleção; transação/locks/retry preservam stale state,
+TOCTOU e rollback; input HTTP não escolhe sucessor nem força papel. PASS.
+
+Push: NÃO REALIZADO. Pendência única: threshold global de coverage preexistente.
