@@ -60,6 +60,8 @@ func ownershipPoolAt(t *testing.T, legacy bool) *pgxpool.Pool {
 	ownershipExec(t, pool, `INSERT INTO chat.channel_members(channel_id,user_id,role,joined_at) VALUES ($1,$2,'member','2020-01-03'),($1,$3,'moderator','2020-01-02'),($1,$4,'member','2020-01-01') ON CONFLICT (channel_id,user_id) DO UPDATE SET joined_at=EXCLUDED.joined_at`, ownershipChannel, ownershipA, ownershipB, ownershipC)
 	if !legacy {
 		ownershipExec(t, pool, `SELECT chat.backfill_conversation_ownership()`)
+		// Fixture creation is complete: tests measure delivery from their own mutations.
+		ownershipExec(t, pool, `DELETE FROM chat.ownership_outbox`)
 	}
 	return pool
 }
@@ -268,6 +270,7 @@ func TestOwnershipAccessAndOutboxPostgreSQL(t *testing.T) {
 	if err := store.DispatchOwnershipChanges(t.Context(), func(context.Context, string, string, string) error { return failure }); !errors.Is(err, failure) {
 		t.Fatalf("bus failure=%v", err)
 	}
+	ownershipExec(t, pool, `UPDATE chat.ownership_outbox SET next_attempt_at=now()`)
 	published := 0
 	if err := store.DispatchOwnershipChanges(t.Context(), func(context.Context, string, string, string) error { published++; return nil }); err != nil || published != 2 {
 		t.Fatalf("outbox retry published=%d err=%v", published, err)

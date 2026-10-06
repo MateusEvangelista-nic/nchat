@@ -1,4 +1,7 @@
-import { invalidateConversationDetails } from "./detailsInvalidation";
+import {
+  invalidateConversationDetails,
+  invalidateOpenConversationDetails,
+} from "./detailsInvalidation";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 
@@ -650,6 +653,17 @@ export function useChatSidebar() {
     // A conversation the user was just added to. They are not subscribed to it,
     // so this is the only way they hear about it before a reload.
     onConversationAvailable: refreshSidebar,
+    // #947 fires this only after subscriptions are ready, including reconnect
+    // and recovery on the existing shared socket. Missed hints need a fresh read.
+    onSubscribed: () => {
+      invalidateOpenConversationDetails();
+      refreshSidebar();
+    },
+    onSubscriptionError: (event) => {
+      if (event.code !== "room_access_denied") return;
+      invalidateOpenConversationDetails();
+      refreshSidebar();
+    },
     // A conversation was renamed somewhere else (issue #527). The event names
     // the target and nothing else, so the only correct response is the same
     // coalescing refetch membership changes use: the server re-derives what this

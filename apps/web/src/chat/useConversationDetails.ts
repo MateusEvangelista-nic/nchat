@@ -886,7 +886,10 @@ export function useConversationDetails(
   useEffect(
     () =>
       listenDetailsInvalidation((event) => {
-        if (event.target_type === (kind === "channel" ? "channel" : "dm") && event.target_id === id)
+        if (
+          event === null ||
+          (event.target_type === (kind === "channel" ? "channel" : "dm") && event.target_id === id)
+        )
           reload();
       }),
     [kind, id, reload],
