@@ -22,6 +22,8 @@ export interface OwnershipDialogContext {
 type Props = OwnershipDialogContext;
 
 function ownershipError(error: unknown): string {
+  if (error instanceof ApiRequestError && error.status === 403)
+    return "Você não tem permissão para esta ação. Atualize os detalhes e tente novamente.";
   if (error instanceof ApiRequestError && error.status === 409)
     return "A propriedade mudou ou não há sucessor elegível. Atualize os detalhes e tente novamente.";
   return "Não foi possível concluir. Atualize os detalhes e tente novamente.";
@@ -170,7 +172,9 @@ export default function OwnershipActionDialog({
   const request = useRef<{ body: string; key: string }>({ body: "", key: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [target, setTarget] = useState("");
+  const [target, setTarget] = useState(() =>
+    action.type === "transfer" ? action.member.userId : "",
+  );
   const [actorRole, setActorRole] = useState<"admin" | "member">("member");
   const [leave, setLeave] = useState(false);
   const candidates = props.ownership.members.filter(
