@@ -105,6 +105,8 @@
   position: fixed;
   z-index: 430;
   width: min(248px, calc(100vw - 16px));
+  max-height: calc(100dvh - 16px);
+  overflow-y: auto;
   box-sizing: border-box;
   padding: 6px;
   border: 1px solid var(--color-border, #e8e3f0);
@@ -130,10 +132,15 @@
   background: var(--color-surface-2, #faf8fd);
 }
 .ownership-member-menu .ownership-member-menu__danger {
+  color: var(--color-danger, #b42318);
+}
+.ownership-member-menu .ownership-member-menu__separated {
   margin-top: 4px;
   border-top: 1px solid var(--color-border, #e8e3f0);
   border-radius: 0 0 6px 6px;
-  color: var(--color-danger, #b42318);
+}
+.ownership-member-menu__mobile-heading {
+  display: none;
 }
 .ownership-roster__leave {
   display: block;
@@ -316,5 +323,36 @@
   }
   .ownership-dialog__buttons button {
     flex: 1;
+  }
+}
+/* Reuse the product's PresenceStatusMenu bottom-sheet pattern. */
+@media (max-width: 640px) {
+  .ownership-member-menu {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 80dvh;
+    border-radius: 12px 12px 0 0;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  .ownership-member-menu button {
+    min-height: 44px;
+  }
+  .ownership-member-menu__mobile-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-left: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .ownership-member-menu__mobile-heading button {
+    flex: none;
+    width: 44px;
+    padding: 8px;
+    text-align: center;
   }
 }

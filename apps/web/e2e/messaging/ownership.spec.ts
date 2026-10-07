@@ -100,7 +100,7 @@ test("ownership transfer converges in two clients and preserves drafts", async (
     });
   });
   await page.getByLabel(`Ações de ${CURRENT_USER_NAME}`).click();
-  await page.getByRole("button", { name: "Transferir minha propriedade" }).click();
+  await page.getByRole("menuitem", { name: "Transferir minha propriedade" }).click();
   const dialog = page.getByRole("dialog", { name: "Transferir minha propriedade" });
   await expect(dialog).toBeVisible();
   await dialog.getByLabel("Novo proprietário").selectOption(OTHER_USER_ID);
@@ -115,9 +115,150 @@ test("ownership transfer converges in two clients and preserves drafts", async (
     await expect(client.getByTestId("chat-composer-pending-attachment")).toContainText(
       "ownership.pdf",
     );
-    await expect(client.getByRole("button", { name: "Transferir minha propriedade" })).toHaveCount(
-      0,
-    );
+    await expect(
+      client.getByRole("menuitem", { name: "Transferir minha propriedade" }),
+    ).toHaveCount(0);
   }
   expect(submitted).toBe(1);
+});
+
+test("participant controls preserve the conversation and use an accessible mobile sheet", async ({
+  page,
+}, testInfo) => {
+  const id = uniqueId(testInfo, "participants-ui");
+  const messages = Array.from({ length: 40 }, (_, index) =>
+    makeMessage({
+      id: `${id}-message-${index}`,
+      body_text: `Histórico ${index}`,
+      created_at: new Date(Date.UTC(2026, 0, 1, 12, index)).toISOString(),
+    }),
+  );
+  const scenario = createScenario({
+    kind: "dm",
+    conversationType: "group",
+    targetId: id,
+    targetName: "Grupo participantes",
+    messages,
+  });
+  const ownership = {
+    enabled: true,
+    members: [
+      {
+        user_id: CURRENT_USER_ID,
+        display_name: CURRENT_USER_NAME,
+        role: "owner",
+        actions: { assign_role: true, remove: false, transfer: false },
+      },
+      {
+        user_id: OTHER_USER_ID,
+        display_name: OTHER_USER_NAME,
+        role: "admin",
+        actions: { assign_role: true, remove: true, transfer: true },
+      },
+      {
+        user_id: `${id}-member`,
+        display_name: "Dai Member",
+        role: "member",
+        actions: { assign_role: true, remove: true, transfer: true },
+      },
+    ],
+    capabilities: { add_members: true, manage_roles: true, edit_metadata: true, leave: true },
+    leave_preview: { last_owner: true, blocked: false },
+  };
+  scenario.groupDetails.set(
+    id,
+    Object.assign(
+      groupDetailsFixture({ id, name: "Grupo participantes" }, ownership.members, 3, true, true),
+      { ownership },
+    ),
+  );
+  await installMessagingMocks(page, scenario);
+  await page.goto(`/chat/dm/${id}`);
+  const bubble = await revealActions(page, messages.at(-1)!.id);
+  await bubble.getByRole("button", { name: "Responder" }).click();
+  await page.getByTestId("chat-composer-file-input").setInputFiles({
+    name: "participants.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.4 participants"),
+  });
+  await expect(page.getByTestId("chat-composer-pending-attachment")).toContainText(
+    "Pronto para enviar",
+  );
+  await page.getByTestId("chat-composer-input").click();
+  await page.keyboard.insertText("Rascunho preservado");
+  const composer = await page.getByTestId("chat-composer-input").elementHandle();
+  const timeline = page.locator(".chat-msg-area__list");
+  const timelineNode = await timeline.elementHandle();
+  const frames = () =>
+    page.evaluate(() => {
+      const scope = window as unknown as {
+        __e2eWebSocketMessages: () => Array<{ type: string }>;
+        __e2eWebSocketLifecycle: () => { created: number; closed: number; active: number };
+      };
+      return {
+        lifecycle: scope.__e2eWebSocketLifecycle(),
+        subscriptions: scope
+          .__e2eWebSocketMessages()
+          .filter((frame) => ["subscribe", "unsubscribe"].includes(frame.type)),
+      };
+    });
+  const originalFrames = await frames();
+  // Compare against the mounted app: media sockets and StrictMode also use the mock.
+  expect(originalFrames.lifecycle.active).toBeGreaterThan(0);
+
+  for (const viewport of [
+    { width: 1280, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.getByRole("button", { name: "Detalhes do grupo", exact: true }).click();
+    const panel = page.getByTestId("chat-conversation-details");
+    await expect(panel.getByText("Proprietário", { exact: true })).toBeVisible();
+    const originalScroll = await timeline.evaluate((node) => {
+      node.scrollTop = Math.max(0, node.scrollHeight - node.clientHeight - 120);
+      return node.scrollTop;
+    });
+    expect(originalScroll).toBeGreaterThan(0);
+    const trigger = panel.getByLabel(`Ações de ${OTHER_USER_NAME}`);
+    await trigger.focus();
+    await page.keyboard.press("Enter");
+    const menu = page.getByRole("menu", { name: `Ações de ${OTHER_USER_NAME}` });
+    await expect(menu.getByRole("menuitem", { name: "Tornar proprietário" })).toBeFocused();
+    const surface = page.locator(".ownership-member-menu");
+    const bounds = await surface.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.y).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport.height);
+    if (viewport.width < 640) {
+      expect(bounds!.width).toBe(viewport.width);
+      expect(bounds!.y + bounds!.height).toBe(viewport.height);
+      await surface.getByRole("button", { name: "Fechar menu" }).click();
+    } else await page.keyboard.press("Escape");
+    await expect(trigger).toBeFocused();
+    await expect(menu).toHaveCount(0);
+    await panel.getByRole("button", { name: "Ver todos" }).click();
+    await panel.getByLabel("Buscar participante").fill("  DAI  ");
+    await panel.getByLabel("Papel").selectOption("member");
+    await expect(panel.getByText("Dai Member", { exact: true })).toBeVisible();
+    await expect(panel.getByRole("listitem")).toHaveCount(1);
+    await panel.getByLabel("Buscar participante").fill("");
+    await panel.getByLabel("Papel").selectOption("");
+    await expect(panel.getByRole("listitem")).toHaveCount(3);
+    expect(await timeline.evaluate((node, original) => node === original, timelineNode)).toBe(true);
+    expect(
+      await page
+        .getByTestId("chat-composer-input")
+        .evaluate((node, original) => node === original, composer),
+    ).toBe(true);
+    expect(await timeline.evaluate((node) => node.scrollTop)).toBe(originalScroll);
+    expect(await frames()).toEqual(originalFrames);
+    await page.getByRole("button", { name: "Fechar detalhes do grupo" }).click();
+    await expect(page.getByTestId("chat-composer-input")).toContainText("Rascunho preservado");
+    await expect(page.getByTestId("chat-composer-quote")).toContainText("Histórico 39");
+    await expect(page.getByTestId("chat-composer-pending-attachment")).toContainText(
+      "participants.pdf",
+    );
+  }
 });

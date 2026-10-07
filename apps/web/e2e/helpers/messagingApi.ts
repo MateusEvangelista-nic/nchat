@@ -1893,6 +1893,8 @@ async function installWebSocketMock(
       sessionStorage.setItem("nchat_at", accessToken);
       const allowed = new Set(allowedTargets);
       const sockets = new Set<StableWebSocket>();
+      let createdSockets = 0;
+      let closedSockets = 0;
       const sentMessages: Array<Record<string, unknown>> = [];
       // Who the server would report as present, per conversation. Seeded from
       // the same fixtures the REST responses use, and mutable so a spec can
@@ -1925,6 +1927,7 @@ async function installWebSocketMock(
         readonly subscriptions = new Set<string>();
 
         constructor() {
+          createdSockets++;
           sockets.add(this);
           setTimeout(() => this.onopen?.(new Event("open")), 0);
         }
@@ -2104,6 +2107,7 @@ async function installWebSocketMock(
         }
 
         close() {
+          closedSockets++;
           sockets.delete(this);
           this.onclose?.(new CloseEvent("close"));
         }
@@ -2142,6 +2146,15 @@ async function installWebSocketMock(
           __e2eWebSocketMessages: () => Array<Record<string, unknown>>;
         }
       ).__e2eWebSocketMessages = () => [...sentMessages];
+      (
+        window as unknown as {
+          __e2eWebSocketLifecycle: () => { created: number; closed: number; active: number };
+        }
+      ).__e2eWebSocketLifecycle = () => ({
+        created: createdSockets,
+        closed: closedSockets,
+        active: sockets.size,
+      });
       (
         window as unknown as { __e2eReceivedSnapshots: () => Array<Record<string, unknown>> }
       ).__e2eReceivedSnapshots = () => [...deliveredSnapshots];

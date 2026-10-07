@@ -22,6 +22,8 @@ export interface OwnershipDialogContext {
 type Props = OwnershipDialogContext;
 
 function ownershipError(error: unknown): string {
+  if (error instanceof ApiRequestError && error.status === 403)
+    return "Você não tem permissão para esta ação. Atualize os detalhes e tente novamente.";
   if (error instanceof ApiRequestError && error.status === 409)
     return "A propriedade mudou ou não há sucessor elegível. Atualize os detalhes e tente novamente.";
   return "Não foi possível concluir. Atualize os detalhes e tente novamente.";
