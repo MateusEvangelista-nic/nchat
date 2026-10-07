@@ -1146,7 +1146,6 @@ function peopleSectionWords(
  */
 function administrableRoster(
   kind: "channel" | "group",
-  _canRemove: boolean,
   roster: ConversationDetailsState["roster"],
 ): ChannelRoster | null {
   if (kind !== "channel" || roster.status !== "ready") return null;
@@ -1270,7 +1269,7 @@ function PeopleSection({
     reload,
     fallbackFocusRef: addMembersButtonRef,
   });
-  const requestedRoster = administrableRoster(kind, canRemove, roster);
+  const requestedRoster = administrableRoster(kind, roster);
   const [loadedRoster, setLoadedRoster] = useState<{
     base: ChannelRoster | null;
     value: ChannelRoster;

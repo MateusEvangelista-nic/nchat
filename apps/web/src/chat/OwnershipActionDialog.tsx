@@ -172,7 +172,9 @@ export default function OwnershipActionDialog({
   const request = useRef<{ body: string; key: string }>({ body: "", key: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [target, setTarget] = useState("");
+  const [target, setTarget] = useState(() =>
+    action.type === "transfer" ? action.member.userId : "",
+  );
   const [actorRole, setActorRole] = useState<"admin" | "member">("member");
   const [leave, setLeave] = useState(false);
   const candidates = props.ownership.members.filter(

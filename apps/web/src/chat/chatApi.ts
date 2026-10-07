@@ -2451,9 +2451,9 @@ export async function removeChannelMember(
  * Removes one participant from a group conversation (issue #469, backend
  * issue #685).
  *
- * A separate route from the channel one because a group is a DM conversation,
- * and a separate *authority*: only the group's creator may call it, which the
- * store re-derives inside the transaction. Same empty request and same 204 as
+ * A separate route because a group is a DM conversation. The server enforces
+ * conversation ownership policy when enabled, or the legacy creator policy
+ * otherwise. The client supplies no authority. Same empty request and 204 as
  * the channel removal above.
  */
 export async function removeGroupParticipant(

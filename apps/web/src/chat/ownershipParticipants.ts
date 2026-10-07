@@ -40,12 +40,12 @@ function nameKey(name: string): string {
     .toLowerCase();
 }
 
-function participantActions(member: OwnershipMember, isSelf: boolean): ParticipantMenuAction[] {
+function participantActions(member: OwnershipMember): ParticipantMenuAction[] {
   const actions: ParticipantMenuAction[] =
     member.actions.assignRole === true
       ? roleTargets[member.role].map((id) => ({ id, label: participantCopy.roleActions[id] }))
       : [];
-  if (isSelf && member.actions.transfer === true)
+  if (member.actions.transfer === true)
     actions.push({ id: "transfer", label: participantCopy.transfer });
   // Explicit presentation contract: an owner must first change role.
   if (member.role !== "owner" && member.actions.remove === true)
@@ -79,7 +79,7 @@ export function ownershipParticipants(
       return {
         rank: isCurrentUser ? 0 : roleOrder[member.role],
         name: nameKey(member.displayName),
-        view: { member, isCurrentUser, actions: participantActions(member, isCurrentUser) },
+        view: { member, isCurrentUser, actions: participantActions(member) },
       };
     })
     .sort(compareParticipants)

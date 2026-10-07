@@ -32,7 +32,7 @@ test("ownership transfer converges in two clients and preserves drafts", async (
         user_id: CURRENT_USER_ID,
         display_name: CURRENT_USER_NAME,
         role: "owner",
-        actions: { assign_role: false, transfer: true, remove: false },
+        actions: { assign_role: true, transfer: false, remove: false },
       },
       {
         user_id: OTHER_USER_ID,
@@ -99,11 +99,11 @@ test("ownership transfer converges in two clients and preserves drafts", async (
       body: JSON.stringify({ data: { target_user_id: OTHER_USER_ID, role: "owner", left: false } }),
     });
   });
-  await page.getByLabel(`Ações de ${CURRENT_USER_NAME}`).click();
+  await page.getByLabel(`Ações de ${OTHER_USER_NAME}`).click();
   await page.getByRole("menuitem", { name: "Transferir minha propriedade" }).click();
   const dialog = page.getByRole("dialog", { name: "Transferir minha propriedade" });
   await expect(dialog).toBeVisible();
-  await dialog.getByLabel("Novo proprietário").selectOption(OTHER_USER_ID);
+  await expect(dialog.getByLabel("Novo proprietário")).toHaveValue(OTHER_USER_ID);
   await dialog.getByRole("button", { name: "Confirmar", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await emitConversationUpdated(observer, { kind: "dm", targetId: id });

@@ -83,7 +83,7 @@ function OwnershipRow({
   const { member, isCurrentUser: isSelf, actions } = participant;
   function dispatch(id: ParticipantMenuAction["id"], trigger: HTMLButtonElement) {
     if (id === "remove") onRemove(member, trigger);
-    else if (id === "transfer") onAction({ type: "transfer" });
+    else if (id === "transfer") onAction({ type: "transfer", member });
     else onAction({ type: "role", member, role: id });
   }
   return (

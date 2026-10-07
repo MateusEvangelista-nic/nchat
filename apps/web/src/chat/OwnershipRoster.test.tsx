@@ -27,7 +27,7 @@ const facts = (): OwnershipDetails => ({
       userId: "a",
       displayName: "Alice",
       role: "owner",
-      actions: { remove: false, assignRole: false, transfer: true },
+      actions: { remove: false, assignRole: true, transfer: false },
     },
     {
       userId: "b",
@@ -77,7 +77,7 @@ beforeEach(() => {
 });
 
 async function openTransfer() {
-  await userEvent.click(screen.getByLabelText("Ações de Alice"));
+  await userEvent.click(screen.getByLabelText("Ações de Bruno"));
   await userEvent.click(screen.getByRole("menuitem", { name: "Transferir minha propriedade" }));
 }
 
@@ -195,23 +195,37 @@ describe("ownership roster", () => {
     }> = [
       {
         role: "member",
-        actions: { assign_role: true, remove: true },
-        expected: ["Tornar administrador", "Tornar proprietário", "Remover"],
+        actions: { assign_role: true, remove: true, transfer: true },
+        expected: [
+          "Tornar administrador",
+          "Tornar proprietário",
+          "Transferir minha propriedade",
+          "Remover",
+        ],
       },
       {
         role: "admin",
-        actions: { assign_role: true, remove: true },
-        expected: ["Tornar proprietário", "Tornar membro", "Remover"],
+        actions: { assign_role: true, remove: true, transfer: true },
+        expected: [
+          "Tornar proprietário",
+          "Tornar membro",
+          "Transferir minha propriedade",
+          "Remover",
+        ],
       },
       {
         role: "owner",
-        actions: { assign_role: true, remove: true },
-        expected: ["Tornar administrador", "Tornar membro"],
+        actions: { assign_role: true, remove: false, transfer: true },
+        expected: ["Tornar administrador", "Tornar membro", "Transferir minha propriedade"],
       },
       { role: "member", actor: "admin", actions: { remove: true }, expected: ["Remover"] },
       { role: "member", actor: "member", actions: {}, expected: [] },
-      { role: "owner", actions: { remove: true }, expected: [] },
-      { role: "member", actions: { transfer: true }, expected: [] },
+      {
+        role: "owner",
+        actor: "member",
+        actions: { remove: false, assign_role: false, transfer: false },
+        expected: [],
+      },
       ...[false, undefined, null, "true", 1, {}, []].map((value) => ({
         role: "member",
         actions: { assign_role: value, remove: value, transfer: value },
@@ -226,7 +240,11 @@ describe("ownership roster", () => {
             user_id: "a",
             display_name: "Actor",
             role: scenario.actor ?? "owner",
-            actions: {},
+            actions: {
+              assign_role: (scenario.actor ?? "owner") === "owner",
+              remove: false,
+              transfer: false,
+            },
           },
           { user_id: "b", display_name: "Target", role: scenario.role, actions: scenario.actions },
         ],
@@ -292,13 +310,23 @@ describe("ownership roster", () => {
     },
   );
 
-  it("requires a transfer target and sends the chosen role and atomic leave flag", async () => {
-    const { reload } = renderRoster();
+  it("uses the real target transfer capability and sends the chosen role and atomic leave flag", async () => {
+    const ownership = facts();
+    expect(ownership.members[0].actions.transfer).toBe(false);
+    const { reload } = renderRoster(ownership);
+    await userEvent.click(screen.getByLabelText("Ações de Alice"));
+    expect(
+      screen.queryByRole("menuitem", { name: "Transferir minha propriedade" }),
+    ).not.toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
     await openTransfer();
     expect(screen.getByRole("dialog")).toHaveAccessibleName("Transferir minha propriedade");
     expect(screen.getByRole("button", { name: "Cancelar" })).toHaveFocus();
-    expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
-    await userEvent.selectOptions(screen.getByLabelText("Novo proprietário"), "b");
+    expect(screen.getByLabelText("Novo proprietário")).toHaveValue("b");
+    expect(
+      within(screen.getByLabelText("Novo proprietário")).queryByRole("option", { name: "Alice" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar" })).toBeEnabled();
     await userEvent.selectOptions(screen.getByLabelText("Meu papel"), "admin");
     await userEvent.click(screen.getByLabelText("Sair após transferir"));
     await userEvent.click(screen.getByRole("button", { name: "Confirmar" }));
