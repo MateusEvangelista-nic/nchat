@@ -103,8 +103,10 @@ test("ownership transfer converges in two clients and preserves drafts", async (
   await page.getByRole("menuitem", { name: "Transferir minha propriedade" }).click();
   const dialog = page.getByRole("dialog", { name: "Transferir minha propriedade" });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByLabel("Novo proprietário")).toHaveValue(OTHER_USER_ID);
-  await dialog.getByRole("button", { name: "Confirmar", exact: true }).click();
+  await expect(
+    dialog.getByRole("radio", { name: `${OTHER_USER_NAME}, Administrador` }),
+  ).toBeChecked();
+  await dialog.getByRole("button", { name: "Transferir propriedade", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await emitConversationUpdated(observer, { kind: "dm", targetId: id });
   for (const client of [page, observer]) {
@@ -163,7 +165,7 @@ test("participant controls preserve the conversation and use an accessible mobil
       },
     ],
     capabilities: { add_members: true, manage_roles: true, edit_metadata: true, leave: true },
-    leave_preview: { last_owner: true, blocked: false },
+    leave_preview: { last_owner: true, successor_user_id: OTHER_USER_ID, blocked: false },
   };
   scenario.groupDetails.set(
     id,
@@ -238,6 +240,68 @@ test("participant controls preserve the conversation and use an accessible mobil
     } else await page.keyboard.press("Escape");
     await expect(trigger).toBeFocused();
     await expect(menu).toHaveCount(0);
+    ownership.members[2].actions.transfer = true;
+    await trigger.click();
+    await page.getByRole("menuitem", { name: "Transferir minha propriedade" }).click();
+    const transferDialog = page.getByRole("dialog", { name: "Transferir minha propriedade" });
+    const cancel = transferDialog.getByRole("button", { name: "Cancelar" });
+    await expect(cancel).toBeFocused();
+    const confirmTransfer = transferDialog.getByRole("button", {
+      name: "Transferir propriedade",
+      exact: true,
+    });
+    await confirmTransfer.focus();
+    await page.keyboard.press("Tab");
+    await expect(transferDialog.getByLabel("Buscar participante")).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(confirmTransfer).toBeFocused();
+    const targetRadio = transferDialog.getByRole("radio", {
+      name: `${OTHER_USER_NAME}, Administrador`,
+    });
+    await targetRadio.focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(transferDialog.getByRole("radio", { name: "Dai Member, Membro" })).toBeChecked();
+    const dialogBounds = await transferDialog.boundingBox();
+    expect(dialogBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(dialogBounds!.x + dialogBounds!.width).toBeLessThanOrEqual(viewport.width);
+    expect(await transferDialog.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(
+      true,
+    );
+    await expect(
+      transferDialog.getByRole("button", { name: "Transferir propriedade", exact: true }),
+    ).toBeInViewport();
+    await page.keyboard.press("Escape");
+    await expect(transferDialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+
+    await page.route(`**/api/chat/dm/${id}/ownership/transfer-and-leave`, async (route) => {
+      expect(route.request().postDataJSON()).toEqual({
+        new_owner_user_id: `${id}-member`,
+        actor_new_role: "member",
+      });
+      expect(route.request().headers()["idempotency-key"]).toBeTruthy();
+      ownership.members[2].actions.transfer = false;
+      await route.fulfill({
+        status: 409,
+        contentType: "application/json",
+        body: JSON.stringify({ error: { code: "conflict", message: "changed" } }),
+      });
+    });
+    await panel.getByRole("button", { name: "Sair da conversa" }).click();
+    const leaveDialog = page.getByRole("dialog", { name: "Sair da conversa" });
+    await expect(leaveDialog).toContainText(`${OTHER_USER_NAME} será promovido automaticamente`);
+    await leaveDialog.getByRole("button", { name: "Escolher outro proprietário" }).click();
+    await leaveDialog.getByRole("radio", { name: "Dai Member, Membro" }).check();
+    await leaveDialog.getByRole("button", { name: "Sair e transferir" }).click();
+    await expect(leaveDialog.getByRole("alert")).toContainText("A propriedade mudou");
+    await expect(leaveDialog.getByRole("radio", { name: "Dai Member, Membro" })).toHaveCount(0);
+    await expect(leaveDialog.getByRole("button", { name: "Sair e transferir" })).toBeDisabled();
+    await expect(leaveDialog.locator("form")).toHaveAttribute("aria-describedby");
+    await expect(page.getByTestId("chat-composer-input")).toContainText("Rascunho preservado");
+    await leaveDialog.getByRole("button", { name: "Cancelar" }).click();
+    await page.unroute(`**/api/chat/dm/${id}/ownership/transfer-and-leave`);
+    ownership.members[2].actions.transfer = true;
+    await emitConversationUpdated(page, { kind: "dm", targetId: id });
     await panel.getByRole("button", { name: "Ver todos" }).click();
     await panel.getByLabel("Buscar participante").fill("  DAI  ");
     await panel.getByLabel("Papel").selectOption("member");

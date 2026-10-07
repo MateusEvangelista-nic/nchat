@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState } from "react";
-import OwnershipActionDialog from "./OwnershipActionDialog";
+import { useMemo, useState } from "react";
+import type { OpenOwnershipAction } from "./OwnershipDialogs";
 import OwnershipMemberMenu from "./OwnershipMemberMenu";
-import { type OwnershipAction as Action, roleLabels } from "./ownershipPresentation";
+import { roleLabels } from "./ownershipPresentation";
 import { emptyTargetPresence, selectTargetPresence, type TargetPresence } from "./presence";
 import { UserAvatar } from "./UserAvatar";
 import { type OwnershipDetails, type OwnershipMember } from "./ownershipApi";
@@ -15,17 +15,14 @@ import {
 import "./OwnershipRoster.css";
 
 interface Props {
-  kind: "channel" | "group";
-  id: string;
   workspaceId: string;
   ownership: OwnershipDetails;
   currentUserId: string;
-  reload: () => void;
   onAdd: () => void;
-  onCommitted?: (message: string) => void;
   onOpenDM?: (userId: string) => void;
   addButtonRef?: React.Ref<HTMLButtonElement>;
   presence?: TargetPresence;
+  onAction: OpenOwnershipAction;
   onRemove: (member: OwnershipMember, trigger: HTMLElement) => void;
 }
 function OwnershipIdentity({
@@ -77,14 +74,14 @@ function OwnershipRow({
   presence: TargetPresence;
   onOpenDM?: (userId: string) => void;
   participant: OwnershipParticipantView;
-  onAction: (action: Action) => void;
+  onAction: OpenOwnershipAction;
   onRemove: Props["onRemove"];
 }) {
   const { member, isCurrentUser: isSelf, actions } = participant;
   function dispatch(id: ParticipantMenuAction["id"], trigger: HTMLButtonElement) {
     if (id === "remove") onRemove(member, trigger);
-    else if (id === "transfer") onAction({ type: "transfer", member });
-    else onAction({ type: "role", member, role: id });
+    else if (id === "transfer") onAction({ type: "transfer", member }, trigger);
+    else onAction({ type: "role", member, role: id }, trigger);
   }
   return (
     <li className="ownership-roster__row">
@@ -113,18 +110,6 @@ export default function OwnershipRoster({ addButtonRef, ...props }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("");
-  const [action, setAction] = useState<Action | null>(null);
-  const focus = useRef<HTMLElement | null>(null);
-  const heading = useRef<HTMLHeadingElement>(null);
-  function openAction(next: Action) {
-    focus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setAction(next);
-  }
-  function closeAction() {
-    setAction(null);
-    if (focus.current?.isConnected) focus.current.focus();
-    else heading.current?.focus();
-  }
   const participants = useMemo(
     () => ownershipParticipants(props.ownership.members, props.currentUserId),
     [props.ownership.members, props.currentUserId],
@@ -133,7 +118,7 @@ export default function OwnershipRoster({ addButtonRef, ...props }: Props) {
   const visible = expanded ? matching : matching.slice(0, 5);
   return (
     <section className="ownership-roster" aria-labelledby="ownership-roster-heading">
-      <h3 className="chat-details__label" id="ownership-roster-heading" ref={heading} tabIndex={-1}>
+      <h3 className="chat-details__label" id="ownership-roster-heading" tabIndex={-1}>
         Participantes ({props.ownership.members.length})
       </h3>
       {expanded && (
@@ -163,7 +148,7 @@ export default function OwnershipRoster({ addButtonRef, ...props }: Props) {
           <OwnershipRow
             key={participant.member.userId}
             participant={participant}
-            onAction={openAction}
+            onAction={props.onAction}
             onRemove={props.onRemove}
             workspaceId={props.workspaceId}
             presence={props.presence ?? emptyTargetPresence}
@@ -197,12 +182,11 @@ export default function OwnershipRoster({ addButtonRef, ...props }: Props) {
         <button
           type="button"
           className="ownership-roster__leave"
-          onClick={() => openAction({ type: "leave" })}
+          onClick={(event) => props.onAction({ type: "leave" }, event.currentTarget)}
         >
           Sair da conversa
         </button>
       )}
-      {action && <OwnershipActionDialog action={action} props={props} onClose={closeAction} />}
     </section>
   );
 }

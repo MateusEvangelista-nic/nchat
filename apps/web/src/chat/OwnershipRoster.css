@@ -257,20 +257,6 @@
   font: inherit;
   font-size: 13px;
 }
-.ownership-dialog .ownership-dialog__checkbox {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 12px 0;
-  border-top: 1px solid var(--color-border, #e8e3f0);
-  font-weight: 400;
-}
-.ownership-dialog__checkbox input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: var(--color-primary, #6d28d9);
-}
 .ownership-dialog__buttons {
   display: flex;
   justify-content: flex-end;
@@ -355,4 +341,57 @@
     padding: 8px;
     text-align: center;
   }
+}
+
+.ownership-dialog input[type="search"] {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.ownership-picker,
+.ownership-dialog__roles {
+  border: 0;
+  padding: 0;
+  margin: 16px 0;
+  min-width: 0;
+}
+.ownership-picker {
+  max-height: 240px;
+  overflow-y: auto;
+}
+.ownership-picker legend,
+.ownership-dialog__roles legend {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.ownership-dialog .ownership-picker__option,
+.ownership-dialog__roles label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+.ownership-picker__person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.ownership-picker__person > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ownership-picker__person strong,
+.ownership-picker__person small {
+  display: block;
+}
+.ownership-dialog__successor {
+  margin: 12px 0;
+}
+.ownership-dialog__successor > span {
+  display: block;
+  margin-bottom: 8px;
+}
+.ownership-dialog__buttons {
+  flex-wrap: wrap;
 }
