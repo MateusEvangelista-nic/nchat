@@ -1,0 +1,8 @@
+{
+  "sha": "73ca0361b8414658681975d5a7a8cac10eb3caf5",
+  "result": "PASS",
+  "check": "CI / Required",
+  "conclusion": "success",
+  "url": "https://github.com/nicrepository/nchat/actions/runs/37684308696/job/113012810204",
+  "scope": "base SHA only; new local QA commit has no remote CI"
+}
