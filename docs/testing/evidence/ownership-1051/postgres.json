@@ -1,11 +1,12 @@
 {
-  "sha": "73ca0361b8414658681975d5a7a8cac10eb3caf5",
-  "started_at": "2026-10-08T17:30:25.257668+00:00",
+  "sha": "77455be3545f148e1c2ac383bb8fccf7ca5e4974",
+  "started_at": "2026-10-08T17:49:07.620321189Z",
   "environment": "disposable PostgreSQL",
   "browser": "N/A",
   "suites": [
     {
       "result": "PASS",
+      "service": "chat-service",
       "executed": 194,
       "skipped": [],
       "failed": [],
@@ -787,7 +788,6 @@
           "result": "PASS"
         }
       ],
-      "service": "chat-service",
       "command": [
         "go",
         "test",
@@ -799,35 +799,11 @@
         "^TestOwnership.*PostgreSQL$",
         "./internal/storage"
       ],
-      "duration_seconds": 61.025
+      "duration_seconds": 58.244698635
     },
     {
       "result": "PASS",
-      "executed": 1,
-      "skipped": [],
-      "failed": [],
-      "tests": [
-        {
-          "name": "TestOwnershipAccountInvalidationPostgreSQL",
-          "result": "PASS"
-        }
-      ],
       "service": "auth-service",
-      "command": [
-        "go",
-        "test",
-        "-json",
-        "-count=1",
-        "-parallel=1",
-        "-timeout=10m",
-        "-run",
-        "^TestOwnershipAccountInvalidationPostgreSQL$",
-        "./internal/storage"
-      ],
-      "duration_seconds": 2.641
-    },
-    {
-      "result": "PASS",
       "executed": 1,
       "skipped": [],
       "failed": [],
@@ -837,7 +813,6 @@
           "result": "PASS"
         }
       ],
-      "service": "admin-service",
       "command": [
         "go",
         "test",
@@ -849,7 +824,32 @@
         "^TestOwnershipAccountInvalidationPostgreSQL$",
         "./internal/storage"
       ],
-      "duration_seconds": 2.072
+      "duration_seconds": 1.471265138
+    },
+    {
+      "result": "PASS",
+      "service": "admin-service",
+      "executed": 1,
+      "skipped": [],
+      "failed": [],
+      "tests": [
+        {
+          "name": "TestOwnershipAccountInvalidationPostgreSQL",
+          "result": "PASS"
+        }
+      ],
+      "command": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-parallel=1",
+        "-timeout=10m",
+        "-run",
+        "^TestOwnershipAccountInvalidationPostgreSQL$",
+        "./internal/storage"
+      ],
+      "duration_seconds": 1.149255941
     }
   ],
   "result": "PASS"

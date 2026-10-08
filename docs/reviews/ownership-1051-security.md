@@ -8,6 +8,8 @@ Fronteiras revisadas: credenciais externas → API real; JSON privado → manife
 UUIDs → seed SQL; DSN → subprocess psql; output Go/Playwright → evidências públicas.
 
 - O runner recusa DSNs ausentes ou com banco diferente de `ownership_953_test`.
+  Todos os três DSNs são verificados antes do primeiro teste. Query parameters
+  não podem substituir o banco por outro nome ou serviço de conexão.
   Não exporta SQL, stdout/stderr, DSN ou tokens ao JSON de evidência.
 - Provisionamento exige quatro identidades exclusivas, compara nomes/membros
   com a projeção da conversa recém-criada e usa apenas UUIDs normalizados e
@@ -20,11 +22,16 @@ UUIDs → seed SQL; DSN → subprocess psql; output Go/Playwright → evidência
 - Trace/HAR/screenshot/vídeo estão desativados. O reporter sanitizado grava
   identificadores de cenários, browser, SHA, tempo e resultado; omite erros e
   payloads. As chamadas negativas exercitam o backend real, sem route mocks.
-- psql usa argv e o helper existente, sem shell ou interpolation de SQL livre.
+- psql usa argv sem shell ou interpolation de SQL livre. As corridas reutilizam
+  o helper oficial existente; o provisionador Go usa parâmetros UUID/data validados.
   Credenciais no DSN são parâmetros privados de conexão, não artefatos públicos.
 
-Validação: parser de falso PASS testado, compilação Python, typecheck TypeScript,
-Go lint sem achados e corridas com `-race`. Nenhuma dependência nova.
+Validação atual: oito testes Go com subcasos e `-race`, `go vet` e runner Go
+executando as 196 verificações PostgreSQL. Os testes cobrem falso PASS, DSNs
+incorretos, redirects HTTP, redaction de diagnósticos, modo 0600, manifests
+parciais, bypass por symlink e limites do SQL. Typecheck TypeScript, Go lint
+e corridas PostgreSQL com `-race` foram verificados no ensaio original.
+Nenhuma dependência nova; o comando Go usa apenas a biblioteca padrão.
 Limites: credenciais e targets externos são configuração do operador; o rótulo
 `nchat-dev` não comprova sozinho namespace, DSN correto ou imagens implantadas.
 Verificar esses vínculos antes da execução. A prova de autorização cross-workspace,
