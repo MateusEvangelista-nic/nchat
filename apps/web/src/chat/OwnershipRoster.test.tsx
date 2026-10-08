@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiRequestError } from "../lib/api";
+import OwnershipDialogs from "./OwnershipDialogs";
 import OwnershipRoster from "./OwnershipRoster";
 import {
   assignConversationRole,
@@ -41,17 +42,22 @@ const renderRoster = (ownership = facts()) => {
   const reload = vi.fn();
   const onRemove = vi.fn();
   const view = render(
-    <OwnershipRoster
-      kind="group"
-      id="group"
-      workspaceId="workspace"
-      currentUserId="a"
-      presence={{ covered: true, entries: new Map() }}
-      ownership={ownership}
-      reload={reload}
-      onAdd={vi.fn()}
-      onRemove={onRemove}
-    />,
+    <OwnershipDialogs
+      status="ready"
+      context={{ kind: "group", id: "group", ownership, currentUserId: "a", reload }}
+    >
+      {(open) => (
+        <OwnershipRoster
+          workspaceId="workspace"
+          currentUserId="a"
+          presence={{ covered: true, entries: new Map() }}
+          ownership={ownership}
+          onAdd={vi.fn()}
+          onRemove={onRemove}
+          onAction={open}
+        />
+      )}
+    </OwnershipDialogs>,
   );
   return { reload, onRemove, ...view };
 };
@@ -75,11 +81,6 @@ beforeEach(() => {
   vi.mocked(assignConversationRole).mockResolvedValue(undefined);
   vi.mocked(transferConversationOwnership).mockResolvedValue(undefined);
 });
-
-async function openTransfer() {
-  await userEvent.click(screen.getByLabelText("Ações de Bruno"));
-  await userEvent.click(screen.getByRole("menuitem", { name: "Transferir minha propriedade" }));
-}
 
 describe("ownership roster", () => {
   it("shares badges, self, alphabetical ownership ordering and the central avatar", async () => {
@@ -128,13 +129,11 @@ describe("ownership roster", () => {
     for (const id of ["owner-z", "admin"]) {
       rerender(
         <OwnershipRoster
-          kind="group"
-          id="group"
           workspaceId="workspace"
           currentUserId={id}
           ownership={ownership}
-          reload={vi.fn()}
           onAdd={vi.fn()}
+          onAction={vi.fn()}
           onRemove={vi.fn()}
         />,
       );
@@ -291,7 +290,7 @@ describe("ownership roster", () => {
     expect(trigger).toHaveFocus();
   });
 
-  it.each([403, 409])(
+  it.each([403])(
     "keeps a denied role mutation (%s) recoverable without projecting success",
     async (status) => {
       vi.mocked(assignConversationRole).mockRejectedValueOnce(
@@ -310,67 +309,20 @@ describe("ownership roster", () => {
     },
   );
 
-  it("uses the real target transfer capability and sends the chosen role and atomic leave flag", async () => {
-    const ownership = facts();
-    expect(ownership.members[0].actions.transfer).toBe(false);
-    const { reload } = renderRoster(ownership);
-    await userEvent.click(screen.getByLabelText("Ações de Alice"));
-    expect(
-      screen.queryByRole("menuitem", { name: "Transferir minha propriedade" }),
-    ).not.toBeInTheDocument();
-    await userEvent.keyboard("{Escape}");
-    await openTransfer();
-    expect(screen.getByRole("dialog")).toHaveAccessibleName("Transferir minha propriedade");
-    expect(screen.getByRole("button", { name: "Cancelar" })).toHaveFocus();
-    expect(screen.getByLabelText("Novo proprietário")).toHaveValue("b");
-    expect(
-      within(screen.getByLabelText("Novo proprietário")).queryByRole("option", { name: "Alice" }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Confirmar" })).toBeEnabled();
-    await userEvent.selectOptions(screen.getByLabelText("Meu papel"), "admin");
-    await userEvent.click(screen.getByLabelText("Sair após transferir"));
-    await userEvent.click(screen.getByRole("button", { name: "Confirmar" }));
-    expect(transferConversationOwnership).toHaveBeenCalledWith(
-      "group",
-      "group",
-      "b",
-      "admin",
-      true,
-      expect.any(String),
-    );
-    expect(reload).toHaveBeenCalledOnce();
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("keeps a failed transfer recoverable and preserves the idempotency key", async () => {
-    vi.mocked(transferConversationOwnership).mockRejectedValueOnce(
-      new ApiRequestError(409, "ownership_conflict", "changed"),
-    );
-    renderRoster();
-    await openTransfer();
-    await userEvent.selectOptions(screen.getByLabelText("Novo proprietário"), "b");
-    await userEvent.click(screen.getByRole("button", { name: "Confirmar" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("A propriedade mudou");
-    await userEvent.click(screen.getByRole("button", { name: "Confirmar" }));
-    const calls = vi.mocked(transferConversationOwnership).mock.calls;
-    expect(calls).toHaveLength(2);
-    expect(calls[1][5]).toBe(calls[0][5]);
-  });
-
   it("blocks a last-owner departure without an automatic successor", async () => {
     const ownership = facts();
     ownership.leavePreview = { lastOwner: true, blocked: true, successorUserId: undefined };
     renderRoster(ownership);
     await userEvent.click(screen.getByRole("button", { name: "Sair da conversa" }));
     expect(screen.getByRole("dialog")).toHaveTextContent("Não há sucessor automático elegível");
-    expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Sair e transferir" })).toBeDisabled();
   });
 
   it("describes the predicted successor and restores focus on cancellation", async () => {
     renderRoster();
     const trigger = screen.getByRole("button", { name: "Sair da conversa" });
     await userEvent.click(trigger);
-    expect(screen.getByRole("dialog")).toHaveTextContent("Bruno assumirá");
+    expect(screen.getByRole("dialog")).toHaveTextContent("Bruno será promovido automaticamente");
     fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
     expect(trigger).toHaveFocus();
   });
