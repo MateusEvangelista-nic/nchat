@@ -84,3 +84,157 @@ Os logs completos ficam em `/tmp/nchat-1051-postmerge-*.log` e
 apenas evidência sanitizada. A evidência PostgreSQL identifica o SHA do merge;
 os ajustes de testes que vieram depois foram verificados por Playwright,
 typecheck, ESLint e revisão do diff.
+
+## Continuidade da integração real — 08/10/2026
+
+HEAD conferido: `0af4aaa9b2bb26f96935a9e0dc7b41d0984e19de`, branch
+`develop`, árvore inicialmente CLEAN e `git diff --check` PASS. As suítes locais
+anteriores não foram repetidas. Somente este relatório e a
+[evidência sanitizada do preflight](evidence/ownership-1051/real-integration-preflight.json)
+foram alterados nessa etapa de preflight; nela não houve commit, push, PR ou merge.
+
+### Verificações atuais
+
+| Comando / consulta                                                                                                                                             | Ambiente / SHA / browser                                                 | Duração aproximada | Resultado | Evidência / impacto                                                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `git status --short`, `git branch --show-current`, `git log -1 --oneline`, `git diff --check`                                                                  | local / `0af4aaa` / N/A                                                  | <1 s               | PASS      | Estado inicial corresponde ao exigido                                                                                    |
+| `kubectl config current-context`                                                                                                                               | notebook / release desconhecido / N/A                                    | <1 s               | BLOCKED   | `current-context is not set`; nenhum cluster consultado                                                                  |
+| `ssh -o BatchMode=yes -o ConnectTimeout=10 srv-apps-01 'hostname; kubectl config current-context; kubectl -n nchat-dev get deployments,pods,services -o wide'` | alvo nchat-dev / release desconhecido / N/A                              | 3,42 s             | BLOCKED   | Host não resolve; nenhum comando remoto executado                                                                        |
+| Presença dos inputs privados, sem ler ou imprimir seus conteúdos                                                                                               | local / `0af4aaa` / N/A                                                  | <1 s               | BLOCKED   | Nenhuma variável OWNERSHIP_QA/NCHAT_DEV/KUBECONFIG; credenciais, fixtures e topology nos caminhos convencionais ausentes |
+| `gh issue view 1091/1092/1093 --repo nicrepository/nchat --json number,state,title,url` (uma consulta por issue)                                               | GitHub / N/A / N/A                                                       | <3 s em conjunto   | PASS      | As três issues estão OPEN; consulta de estado não equivale a revalidação funcional                                       |
+| `gh api repos/nicrepository/nchat/rules/branches/develop`                                                                                                      | GitHub / N/A / N/A                                                       | <1 s               | PASS      | Required check confirmado: `CI / Required`, política strict                                                              |
+| `gh api repos/nicrepository/nchat/commits/0af4aaa/check-runs`                                                                                                  | GitHub / `0af4aaa` / N/A                                                 | <1 s               | BLOCKED   | HTTP 422: SHA local não existe remotamente                                                                               |
+| Consulta à branch e às variables de nchat-dev                                                                                                                  | GitHub / remote develop `19e93af9ad4d94269432959e6cd7e87d2282d2d4` / N/A | <2 s               | BLOCKED   | Branch consultável, mas environment variables retornaram HTTP 403; URL operacional não obtida                            |
+
+As primeiras consultas GitHub falharam na rede do sandbox; foram repetidas fora
+dele e os estados acima refletem as respostas efetivas. O SSH inicialmente
+encontrou erro de permissões na configuração de sistema dentro do sandbox;
+fora dele, `ssh -G` funcionou, mas a conexão falhou na resolução do hostname.
+Nenhum desses erros prova indisponibilidade da aplicação.
+
+Não há evidência atual de deployed SHA, migrations, ownership ativo, serviços
+Ready, quantidade de réplicas ou conectividade Valkey. A #1091 registra ativação
+histórica em 08/10/2026; ela não foi usada para declarar o ambiente atual PASS.
+Foi solicitado o caminho privado dos acessos aprovados e do ambiente descartável
+para falhas/Blue-Green. Sem esses inputs, nenhuma sessão autenticada foi aberta.
+
+O runbook Blue/Green existente e seus scripts são de `nchat-prod`. Eles não foram
+executados: falta um ambiente operacional compatível autorizado, e produção
+permanece fora do escopo. Revisar scripts não comprova N/N+1, activate, cutover
+ou rollback. Compatibilidade old/new permanece BLOCKED, sem inventar N/A.
+
+### Resultado por bloco
+
+```text
+ISSUE
+#1051
+
+HEAD
+0af4aaa
+
+WORKTREE
+DIRTY — apenas documentação/evidência desta continuidade
+
+LOCAL VALIDATION
+Playwright mocked: PASS — 28 testes, evidência anterior
+PostgreSQL: PASS — 196 tests, 0 skips, evidência anterior
+Coverage >=90%: PASS — evidência anterior
+Web build: PASS — evidência anterior
+Admin build: PASS — evidência anterior
+
+REAL INTEGRATION
+Environment: nchat-dev (alvo; acesso não comprovado)
+Ownership active: BLOCKED
+Group real browser: BLOCKED
+Private channel real browser: BLOCKED
+Two clients realtime: BLOCKED
+Reconnect: BLOCKED
+Removed-client access: BLOCKED — #1092 não revalidada
+
+MULTI-REPLICA
+Replicas >=2: BLOCKED
+Valkey: BLOCKED
+Cross-replica realtime: BLOCKED
+Duplicate invalidation: BLOCKED
+Bus failure: BLOCKED
+Retry: BLOCKED
+Outbox backlog: BLOCKED
+
+BLUE/GREEN
+N/N+1: BLOCKED
+Activate: BLOCKED
+Cutover: BLOCKED
+Rollback: BLOCKED
+Old client → new server: BLOCKED
+New client → old compatible server: BLOCKED
+
+NO ORPHAN
+Groups: BLOCKED — contagem atual não consultada
+Private channels: BLOCKED — contagem atual não consultada
+
+UX REAL
+Desktop: BLOCKED
+390px: BLOCKED
+Keyboard: BLOCKED
+Draft: BLOCKED
+Reply: BLOCKED
+Attachment: BLOCKED
+Blobatar: BLOCKED
+Roles/presence: BLOCKED
+
+BROWSERS
+Chromium: BLOCKED — integração real não executada
+Firefox: BLOCKED — integração real não executada
+
+CI
+Required checks: BLOCKED — CI / Required sem execução no SHA local
+
+FAILURES FOUND
+Nenhum novo bug funcional reproduzido; acesso operacional bloqueado.
+
+ISSUES OPENED / REOPENED
+Nenhuma — as issues donas existentes permanecem abertas.
+
+#1091
+OPEN
+Impact: reconciliação de ativação pendente; estado atual não consultado.
+
+#1092
+OPEN
+Impact: perda de acesso após remoção exige revalidação real.
+
+#1093
+OPEN
+Impact: contrato de mensagens de sistema continua pendente.
+
+GIT
+HEAD: 0af4aaa
+git diff --check: PASS
+Worktree: DIRTY — somente relatório e JSON sanitizado
+Push: NÃO REALIZADO
+
+FINAL VERDICT
+BLOCKED
+
+REASON
+Faltam URL/acesso operacional, inputs privados de QA e ambiente compatível
+autorizado para falhas/Blue-Green; required CI não existe para o SHA local.
+```
+
+O preflight oficial a executar quando o acesso estiver disponível é
+`psql "$OWNERSHIP_QA_PREFLIGHT_DSN" -X -v ON_ERROR_STOP=1 -f scripts/db/ownership/preflight.sql`.
+Ele consulta `chat.orphaned_private_conversations` em transação read-only e falha
+se houver participante ativo sem owner elegível. Nesta continuidade a query foi
+**NÃO EXECUTADO**; nenhum zero foi presumido a partir da evidência descartável.
+
+## Publicação para revisão
+
+Após o preflight acima, o usuário autorizou push e abertura de PR. O trabalho foi
+preparado na branch `feature/chat-1051-ownership-qa-evidence`, com destino
+`develop`, incluindo o harness Go, os testes e as evidências locais anteriores.
+O relatório e o JSON de preflight preservam o estado observado antes da
+publicação; suas referências a ausência de push/checks são históricas.
+
+A publicação não comprova os blocos operacionais nem encerra a #1051. O PR
+referencia a issue sem instrução de fechamento, e os checks remotos devem ser
+avaliados no SHA publicado. O veredito da matriz integrada permanece **BLOCKED**.

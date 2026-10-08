@@ -1,0 +1,37 @@
+{
+  "issue": 1051,
+  "checked_at_utc": "2026-10-08T19:41:09Z",
+  "head": "0af4aaa9b2bb26f96935a9e0dc7b41d0984e19de",
+  "branch": "develop",
+  "initial_worktree": "CLEAN",
+  "initial_diff_check": "PASS",
+  "environment_target": "nchat-dev",
+  "environment_verified": false,
+  "kubernetes": { "result": "BLOCKED", "reason": "current-context is not set" },
+  "ssh": {
+    "result": "BLOCKED",
+    "reason": "srv-apps-01 does not resolve; no remote command executed"
+  },
+  "private_qa_inputs": {
+    "environment_variables_present": false,
+    "credentials_present": false,
+    "fixtures_present": false,
+    "topology_present": false
+  },
+  "issues": { "1091": "OPEN", "1092": "OPEN", "1093": "OPEN" },
+  "required_ci": {
+    "result": "BLOCKED",
+    "required_check": "CI / Required",
+    "rule_verified": true,
+    "local_head_query_http_status": 422,
+    "reason": "Local SHA has not been pushed and has no remote checks",
+    "remote_develop_sha": "19e93af9ad4d94269432959e6cd7e87d2282d2d4"
+  },
+  "real_browser_executed": false,
+  "infrastructure_mutations_executed": false,
+  "orphan_counts": { "groups": null, "private_channels": null },
+  "new_bugs_reproduced": false,
+  "issues_opened_or_reopened": [],
+  "push_performed": false,
+  "final_verdict": "BLOCKED"
+}
