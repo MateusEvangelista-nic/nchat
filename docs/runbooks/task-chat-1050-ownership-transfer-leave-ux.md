@@ -71,6 +71,28 @@ handoff; os resultados novos devem prevalecer para o estado após o merge.
 
 ## Artefatos e limites
 
+### Refinamento visual solicitado após o aceite
+
+Os dialogs receberam hierarquia de título e descrição, busca com ícone e label
+explícito, opções de participante com seleção visível, cards de ADMIN/MEMBER com
+descrições acessíveis e um card destacado para o futuro proprietário na saída.
+Os avatares do picker/preview agora têm tamanho fixo de 36px, incluindo o fallback;
+a inspeção visual identificou que a imagem podia ocupar a largura disponível e
+comprimir o nome. O layout mantém os tokens do tema chat e adapta os cards para
+uma coluna em mobile.
+
+Validação do refinamento: 42 testes de componentes em três arquivos, dois
+cenários Playwright, inspeção das capturas desktop 1280px/mobile 390px, ESLint
+com limites de complexidade 10, formatter e build web. Nenhuma alteração nos
+hooks de estado, idempotência, API ou backend. O CI completo da rodada anterior
+não foi repetido para esse ajuste visual; a pendência de cobertura Go permanece.
+
+Logs: `/tmp/nchat1050-front-tests.log`, `/tmp/nchat1050-front-e2e.log` e
+`/tmp/nchat1050-front-build.log`. Capturas: `/tmp/nchat1050-front-transfer-390.png`,
+`/tmp/nchat1050-front-transfer-1280.png` e `/tmp/nchat1050-front-leave-390.png`.
+
+### Evidências da rodada original
+
 - CI: `/tmp/nchat1050-postmerge-ci-unrestricted.log`.
 - Tentativa inicial no sandbox: `/tmp/nchat1050-postmerge-ci.log`.
 - E2E válido: `/tmp/nchat1050-postmerge-e2e-isolated.log`.
@@ -78,6 +100,6 @@ handoff; os resultados novos devem prevalecer para o estado após o merge.
 - Métricas: `/tmp/nchat1050-postmerge-complexity.json`.
 - Build: `/tmp/nchat1050-postmerge-build.log`.
 
-Não houve alteração funcional de código nesta rodada. Não foram feitos push, PR,
+Não houve alteração das regras funcionais nesta rodada. Não foram feitos push, PR,
 merge em develop, deploy ou QA manual em ambiente implantado. O merge realizado
 foi de `upstream/develop` para a branch da task, conforme solicitado.

@@ -70,6 +70,7 @@ export default function OwnershipActionDialog({
     <dialog
       ref={dialog}
       className="ownership-dialog chat-theme"
+      data-action={action.type}
       aria-labelledby={`${ids}-title`}
       aria-describedby={`${ids}-description`}
       aria-modal="true"
@@ -83,7 +84,10 @@ export default function OwnershipActionDialog({
         <span className="ownership-dialog__icon material-symbols-outlined" aria-hidden="true">
           {ownershipActionIcon(action)}
         </span>
-        <h3 id={`${ids}-title`}>{title(action)}</h3>
+        <div>
+          <h3 id={`${ids}-title`}>{title(action)}</h3>
+          <span className="ownership-dialog__subtitle">Responsabilidade da conversa</span>
+        </div>
       </div>
       <form
         onSubmit={(event) => {
@@ -181,7 +185,15 @@ function OwnershipManualChoice({
   )
     return null;
   return (
-    <button type="button" disabled={selection.fieldsDisabled} onClick={selection.toggleManual}>
+    <button
+      className="ownership-dialog__secondary"
+      type="button"
+      disabled={selection.fieldsDisabled}
+      onClick={selection.toggleManual}
+    >
+      <span className="material-symbols-outlined" aria-hidden="true">
+        swap_horiz
+      </span>
       {selection.manual ? copy.automatic : copy.chooseAnother}
     </button>
   );
@@ -200,11 +212,16 @@ function OwnershipActorRole({
         <label key={role}>
           <input
             type="radio"
+            aria-label={roleLabels[role]}
+            aria-describedby={`${ids}-role-${role}`}
             name={`${ids}-role`}
             checked={selection.actorRole === role}
             onChange={() => selection.changeRole(role)}
           />
-          {roleLabels[role]}
+          <span>
+            <strong>{roleLabels[role]}</strong>
+            <small id={`${ids}-role-${role}`}>{actorRoleHints[role]}</small>
+          </span>
         </label>
       ))}
     </fieldset>
@@ -233,7 +250,7 @@ function OwnershipNotices({
       {refreshing && !unavailable && <p role="status">{copy.refreshing}</p>}
       {unavailable && <p role="alert">{copy.refreshError}</p>}
       {(refreshing || unavailable) && (
-        <button type="button" onClick={reload}>
+        <button className="ownership-dialog__secondary" type="button" onClick={reload}>
           {copy.refresh}
         </button>
       )}
@@ -260,7 +277,7 @@ function OwnershipLeaveFields({
   const person = manual ? selected : successor;
   return (
     <>
-      <p>{copy.lastOwner}</p>
+      <p className="ownership-dialog__consequence">{copy.lastOwner}</p>
       {manual ? (
         <p>O proprietário escolhido assumirá a responsabilidade quando você sair.</p>
       ) : (
@@ -274,6 +291,12 @@ function OwnershipLeaveFields({
         <div className="ownership-dialog__successor">
           <span>{copy.target}</span>
           <OwnershipPerson member={person} workspaceId={workspaceId} />
+          <span className="ownership-dialog__successor-note">
+            <span className="material-symbols-outlined" aria-hidden="true">
+              key
+            </span>
+            Assumirá a propriedade quando você sair
+          </span>
         </div>
       )}
     </>
@@ -287,6 +310,11 @@ const roleDescriptions = {
     "Poderá editar o nome e remover membros comuns. Não poderá alterar papéis nem administrar outros administradores ou proprietários.",
   member:
     "Poderá participar da conversa e adicionar pessoas quando permitido. Não poderá editar o nome, remover participantes ou alterar papéis.",
+};
+
+const actorRoleHints = {
+  admin: "Edite o nome e gerencie membros comuns.",
+  member: "Continue participando da conversa.",
 };
 
 function ownershipActionIcon(action: Action) {

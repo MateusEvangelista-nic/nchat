@@ -13,13 +13,15 @@ export function OwnershipPerson({
 }) {
   return (
     <span className="ownership-picker__person">
-      <UserAvatar
-        workspaceId={workspaceId}
-        userId={member.userId}
-        displayName={member.displayName}
-        avatarUrl={member.avatarUrl}
-        size="sm"
-      />
+      <span className="ownership-picker__avatar">
+        <UserAvatar
+          workspaceId={workspaceId}
+          userId={member.userId}
+          displayName={member.displayName}
+          avatarUrl={member.avatarUrl}
+          size="sm"
+        />
+      </span>
       <span>
         <strong>{member.displayName}</strong>
         <small>{roleLabels[member.role]}</small>
@@ -53,19 +55,27 @@ export default function OwnershipTargetPicker({
   );
   return (
     <>
-      <label>
-        {ownershipCopy.search}
-        <input
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          disabled={disabled}
-        />
-      </label>
+      <div className="ownership-picker__search">
+        <label htmlFor={`${name}-search`}>{ownershipCopy.search}</label>
+        <span className="ownership-picker__search-field">
+          <span className="material-symbols-outlined" aria-hidden="true">
+            search
+          </span>
+          <input
+            id={`${name}-search`}
+            type="search"
+            placeholder="Nome do participante"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            disabled={disabled}
+          />
+        </span>
+      </div>
       <fieldset className="ownership-picker" disabled={disabled}>
         <legend>{ownershipCopy.target}</legend>
         {matching.map((member) => (
           <label key={member.userId} className="ownership-picker__option">
+            <OwnershipPerson member={member} workspaceId={workspaceId} />
             <input
               type="radio"
               name={name}
@@ -74,7 +84,6 @@ export default function OwnershipTargetPicker({
               onChange={() => onChange(member.userId)}
               aria-label={`${member.displayName}, ${roleLabels[member.role]}`}
             />
-            <OwnershipPerson member={member} workspaceId={workspaceId} />
           </label>
         ))}
         {matching.length === 0 && <p role="status">{ownershipCopy.noCandidates}</p>}
