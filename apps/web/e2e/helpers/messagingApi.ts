@@ -1312,17 +1312,18 @@ export async function installMessagingMocks(
   function assertConversationAccess(targetId: string): boolean {
     return !forbidden.has(targetId);
   }
-  await page.context().grantPermissions(["clipboard-read", "clipboard-write"], {
-    origin: "http://localhost:5173",
-  });
   // RF-23: call.start/call.accept now run a real getUserMedia() preflight.
   // Grant camera/microphone so that preflight resolves deterministically
   // against the fake devices configured in playwright.config.ts; tests that
   // exercise the denied path override navigator.mediaDevices.getUserMedia
   // directly instead of revoking this context-level grant.
-  await page.context().grantPermissions(["camera", "microphone"], {
-    origin: "http://localhost:5173",
-  });
+  // Firefox does not implement these Playwright permission grants. Ownership
+  // specs do not need them; call/clipboard specs keep using Chromium.
+  if (page.context().browser()?.browserType().name() === "chromium") {
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write", "camera", "microphone"]);
+  }
   await installWebSocketMock(page, scenario, assertConversationAccess, options.knownCalls ?? []);
   await installSidebarMocks(page, scenario);
   await installInteractionMocks(page, scenario, assertConversationAccess);

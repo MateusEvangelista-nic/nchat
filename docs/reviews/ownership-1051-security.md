@@ -37,3 +37,12 @@ Limites: credenciais e targets externos são configuração do operador; o rótu
 Verificar esses vínculos antes da execução. A prova de autorização cross-workspace,
 fan-out/Valkey e revogação sem F5 continua pendente no relatório. Produção não
 foi acessada ou alterada.
+
+Revisão pós-merge: os novos ajustes continuam exclusivos de QA. Os grants de
+clipboard/câmera/microfone são do contexto browser mockado e foram restritos
+a Chromium; não alteram permissões ou autorização do produto. API/WS mockados
+ficam na configuração UI; a configuração live continua exigindo credenciais e
+preflight externos. A retomada de cobertura usa duas bases descartáveis
+separadas, com migrations oficiais. Os artefatos versionados contêm resultados
+e hashes de fontes QA, sem DSNs, tokens ou payloads privados. Nenhum achado
+relevante no diff adicional; integração live e Blue/Green permanecem pendentes.

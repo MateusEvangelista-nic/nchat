@@ -2,7 +2,8 @@
 
 Veredito: **BLOCKED**. A matriz PostgreSQL executada passou. Não há evidência
 de execução browser real em nchat-dev, duas réplicas com Valkey ou Blue/Green.
-O gate global foi interrompido, e o novo commit local não tem required CI remoto.
+Os resultados após o merge local estão no [relatório pós-merge](ownership-1051-local-merge.md).
+O novo commit local não tem required CI remoto.
 Este relatório não encerra a [#1051](https://github.com/nicrepository/nchat/issues/1051).
 
 ## Referência e ambientes
@@ -11,7 +12,9 @@ Este relatório não encerra a [#1051](https://github.com/nicrepository/nchat/is
 - Base confirmada por `git fetch upstream develop`:
   `73ca0361b8414658681975d5a7a8cac10eb3caf5`.
 - Branch: `feature/chat-1051-ownership-integration`, worktree `nchat-1051`.
-  Demais worktrees preservados. Sem push, PR, merge ou mudança de produto.
+  Demais worktrees preservados. Sem push, PR ou mudança de produto nesta QA.
+  Após autorização posterior, a branch foi incorporada à `develop` local;
+  o relatório pós-merge registra esse passo e as novas verificações.
 - PostgreSQL 17 descartável, container `nchat-1051-postgres`, label
   `nchat.qa=1051`, porta loopback 55451, banco exclusivo `ownership_953_test`.
   Os testes aplicam suas próprias migrations e resetam schemas sequencialmente.

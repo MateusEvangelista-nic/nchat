@@ -1,0 +1,856 @@
+{
+  "sha": "5e718b4e3825db5f62dbb1def358a117956ae343",
+  "started_at": "2026-10-08T19:17:05.677906774Z",
+  "environment": "disposable PostgreSQL",
+  "browser": "N/A",
+  "suites": [
+    {
+      "result": "PASS",
+      "service": "chat-service",
+      "executed": 194,
+      "skipped": [],
+      "failed": [],
+      "tests": [
+        {
+          "name": "TestOwnershipConversationRoleMatrixPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleMatrixPostgreSQL/dm",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleMatrixPostgreSQL/channel",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleBoundaryPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleBoundaryPostgreSQL/last-owner",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleBoundaryPostgreSQL/sole-owner",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleBoundaryPostgreSQL/cross-workspace",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleBoundaryPostgreSQL/actor-removed",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleBoundaryPostgreSQL/target-removed",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleBoundaryPostgreSQL/workspace-admin",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleBoundaryPostgreSQL/actor-demoted",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleBoundaryPostgreSQL/actor-suspended",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleBoundaryPostgreSQL/target-suspended",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleBoundaryPostgreSQL/archived",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleBoundaryPostgreSQL/public",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleBoundaryPostgreSQL/rollout-disabled",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleRollbackPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleRacesPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleRacesPostgreSQL/mutual-demotion",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleRacesPostgreSQL/promote-remove",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConversationRoleRacesPostgreSQL/same-target-promotion",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationEventsPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationEventsPostgreSQL/account_suspended",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationEventsPostgreSQL/workspace_suspended",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationEventsPostgreSQL/workspace_left",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationEventsPostgreSQL/workspace_deleted",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationEventsPostgreSQL/account_locked",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationEventsPostgreSQL/account_deleted",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationEventsPostgreSQL/account_soft_deleted",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationEventsPostgreSQL/account_hard_deleted",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationMultipleAndRollbackPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationMultipleAndRollbackPostgreSQL/success",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationMultipleAndRollbackPostgreSQL/no_successor",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationMultipleAndRollbackPostgreSQL/failure_after_promotion",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationWorkspaceLifecyclePostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationOrderedConcurrencyPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationOrderedConcurrencyPostgreSQL/leave_suspend/first",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationOrderedConcurrencyPostgreSQL/leave_suspend/reverse",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationOrderedConcurrencyPostgreSQL/transfer_remove_actor/first",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationOrderedConcurrencyPostgreSQL/transfer_remove_actor/reverse",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationOrderedConcurrencyPostgreSQL/transfer_remove_target/first",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationOrderedConcurrencyPostgreSQL/transfer_remove_target/reverse",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationOrderedConcurrencyPostgreSQL/candidate_suspended/first",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipInvalidationOrderedConcurrencyPostgreSQL/candidate_suspended/reverse",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipMigrationUpDownPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipBackfillTablePostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipBackfillTablePostgreSQL/creator",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipBackfillTablePostgreSQL/missing_creator",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipBackfillTablePostgreSQL/inactive_creator",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipBackfillTablePostgreSQL/deleted_creator",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipBackfillTablePostgreSQL/inactive_membership",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipBackfillTablePostgreSQL/group_ignores_admin",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipBackfillTablePostgreSQL/channel_oldest_fallback",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipBackfillTablePostgreSQL/ties",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipBackfillTablePostgreSQL/guest_creator",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipBackfillTablePostgreSQL/empty",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipBackfillTablePostgreSQL/inactive_workspace",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipBackfillTablePostgreSQL/cross_workspace_creator",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipBackfillTablePostgreSQL/preserve_guest_owner",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOperationalActivationPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOperationalActivationPostgreSQL/workspace_lock_timeout",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOperationalActivationPostgreSQL/operator_evidence",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOperationalActivationPostgreSQL/legacy_write_and_read",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOperationalActivationPostgreSQL/preflight_and_atomicity",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOperationalActivationPostgreSQL/activation_and_compatible_rollback",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOperationalActivationPostgreSQL/missing_rollout",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOperationalActivationPostgreSQL/inconsistent_rollout",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOperationalActivationPostgreSQL/previous_activation_without_evidence",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOperationalActivationPostgreSQL/empty_conversations",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOutboxTransactionPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOutboxTransactionPostgreSQL/dm",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOutboxTransactionPostgreSQL/channel",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOutboxPublisherPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOutboxPublisherPostgreSQL/dm",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOutboxPublisherPostgreSQL/channel",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOutboxCrashReplayPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOutboxTwoReplicasPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipOutboxMetadataCompatibilityPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipCompatibilityAndBackfillPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionAndRollbackPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferIdempotencyPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConcurrentDeparturePostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferAndLeavePostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipAuthorizationPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipAccessAndOutboxPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConcurrentSuspensionAndTransferPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipActivationAndCompatibilityRollbackPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipActivationRejectsGuestOnlyOrphanPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipRejoinRenewsSeniorityPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConcurrentMutationMatrixPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConcurrentMutationMatrixPostgreSQL/transfer-remove",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConcurrentMutationMatrixPostgreSQL/promote-leave",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipDeletionPreservesAuthorshipPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipQAOrderedMutationsPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipQAOrderedMutationsPostgreSQL/dm/transfer-remove/first",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipQAOrderedMutationsPostgreSQL/dm/transfer-remove/reverse",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipQAOrderedMutationsPostgreSQL/dm/promote-leave/first",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipQAOrderedMutationsPostgreSQL/dm/promote-leave/reverse",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipQAOrderedMutationsPostgreSQL/channel/transfer-remove/first",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipQAOrderedMutationsPostgreSQL/channel/transfer-remove/reverse",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipQAOrderedMutationsPostgreSQL/channel/promote-leave/first",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipQAOrderedMutationsPostgreSQL/channel/promote-leave/reverse",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL/dm/owner_remains",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL/dm/guest_owner_remains",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL/dm/oldest_admin",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL/dm/oldest_member",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL/dm/new_admin_beats_old_member",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL/dm/uuid_tie",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL/dm/departing_excluded",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL/channel/owner_remains",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL/channel/guest_owner_remains",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL/channel/oldest_admin",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL/channel/oldest_member",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL/channel/new_admin_beats_old_member",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL/channel/uuid_tie",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionSelectionPostgreSQL/channel/departing_excluded",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/dm/UPDATE_chat.workspace_members_SET_role='guest'_WHERE_user_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/dm/UPDATE_auth.users_SET_status='suspended'_WHERE_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/dm/UPDATE_auth.users_SET_status='locked'_WHERE_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/dm/UPDATE_auth.users_SET_status='invited'_WHERE_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/dm/UPDATE_auth.users_SET_status='deleted'_WHERE_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/dm/UPDATE_auth.users_SET_deleted_at=now()_WHERE_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/dm/UPDATE_chat.workspace_members_SET_status='suspended'_WHERE_user_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/dm/UPDATE_chat.workspace_members_SET_status='left'_WHERE_user_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/dm/UPDATE_chat.dm_members_SET_status='left',left_at=now()_WHERE_user_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/channel/UPDATE_chat.workspace_members_SET_role='guest'_WHERE_user_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/channel/UPDATE_auth.users_SET_status='suspended'_WHERE_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/channel/UPDATE_auth.users_SET_status='locked'_WHERE_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/channel/UPDATE_auth.users_SET_status='invited'_WHERE_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/channel/UPDATE_auth.users_SET_status='deleted'_WHERE_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/channel/UPDATE_auth.users_SET_deleted_at=now()_WHERE_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/channel/UPDATE_chat.workspace_members_SET_status='suspended'_WHERE_user_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/channel/UPDATE_chat.workspace_members_SET_status='left'_WHERE_user_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEligibilityPostgreSQL/channel/DELETE_FROM_chat.channel_members_WHERE_user_id='95300000-0000-4000-8000-00000000000b'",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEmptyAndGuestRollbackPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEmptyAndGuestRollbackPostgreSQL/dm/empty",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEmptyAndGuestRollbackPostgreSQL/dm/guests",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEmptyAndGuestRollbackPostgreSQL/channel/empty",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionEmptyAndGuestRollbackPostgreSQL/channel/guests",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipChannelRejoinRenewsSeniorityPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionOrderedConcurrencyPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionOrderedConcurrencyPostgreSQL/dm/two_owners/first",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionOrderedConcurrencyPostgreSQL/dm/two_owners/reverse",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionOrderedConcurrencyPostgreSQL/dm/remove_candidate/first",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionOrderedConcurrencyPostgreSQL/dm/remove_candidate/reverse",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionOrderedConcurrencyPostgreSQL/channel/two_owners/first",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionOrderedConcurrencyPostgreSQL/channel/two_owners/reverse",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionOrderedConcurrencyPostgreSQL/channel/remove_candidate/first",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionOrderedConcurrencyPostgreSQL/channel/remove_candidate/reverse",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipDirectDemotionCommitPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipDirectDemotionCommitPostgreSQL/dm",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipDirectDemotionCommitPostgreSQL/channel",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionRollbackPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionRollbackPostgreSQL/dm",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipSuccessionRollbackPostgreSQL/channel",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferMatrixPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferMatrixPostgreSQL/dm/member/admin",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferMatrixPostgreSQL/dm/member/member",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferMatrixPostgreSQL/dm/admin/admin",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferMatrixPostgreSQL/dm/admin/member",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferMatrixPostgreSQL/dm/owner/admin",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferMatrixPostgreSQL/dm/owner/member",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferMatrixPostgreSQL/channel/member/admin",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferMatrixPostgreSQL/channel/member/member",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferMatrixPostgreSQL/channel/admin/admin",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferMatrixPostgreSQL/channel/admin/member",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferMatrixPostgreSQL/channel/owner/admin",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferMatrixPostgreSQL/channel/owner/member",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/dm/target-removed",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/dm/self",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/dm/actor-non-owner",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/dm/cross-workspace",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/dm/archived",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/dm/workspace-inactive",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/dm/target-suspended",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/dm/rollout-disabled",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/channel/target-removed",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/channel/self",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/channel/actor-non-owner",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/channel/cross-workspace",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/channel/archived",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/channel/workspace-inactive",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/channel/target-suspended",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRevalidationPostgreSQL/channel/rollout-disabled",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferPublicResourcePostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRollbackPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRollbackPostgreSQL/dm",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipTransferRollbackPostgreSQL/channel",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConcurrentTransfersPostgreSQL",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConcurrentTransfersPostgreSQL/dm",
+          "result": "PASS"
+        },
+        {
+          "name": "TestOwnershipConcurrentTransfersPostgreSQL/channel",
+          "result": "PASS"
+        }
+      ],
+      "command": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-parallel=1",
+        "-timeout=10m",
+        "-run",
+        "^TestOwnership.*PostgreSQL$",
+        "./internal/storage"
+      ],
+      "duration_seconds": 68.144904459
+    },
+    {
+      "result": "PASS",
+      "service": "auth-service",
+      "executed": 1,
+      "skipped": [],
+      "failed": [],
+      "tests": [
+        {
+          "name": "TestOwnershipAccountInvalidationPostgreSQL",
+          "result": "PASS"
+        }
+      ],
+      "command": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-parallel=1",
+        "-timeout=10m",
+        "-run",
+        "^TestOwnershipAccountInvalidationPostgreSQL$",
+        "./internal/storage"
+      ],
+      "duration_seconds": 1.61484213
+    },
+    {
+      "result": "PASS",
+      "service": "admin-service",
+      "executed": 1,
+      "skipped": [],
+      "failed": [],
+      "tests": [
+        {
+          "name": "TestOwnershipAccountInvalidationPostgreSQL",
+          "result": "PASS"
+        }
+      ],
+      "command": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-parallel=1",
+        "-timeout=10m",
+        "-run",
+        "^TestOwnershipAccountInvalidationPostgreSQL$",
+        "./internal/storage"
+      ],
+      "duration_seconds": 1.204788639
+    }
+  ],
+  "result": "PASS"
+}

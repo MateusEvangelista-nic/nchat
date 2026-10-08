@@ -18,3 +18,11 @@ Selectors, foco e texto de revogação ainda exigem execução browser. O fixtur
 provisioner foi compilado e revisado; não foi exercitado com credenciais reais.
 O gate global interrompido não foi repetido nem declarado aprovado. Casos
 faltantes e ambientes necessários constam em [ownership-1051](../testing/ownership-1051.md).
+
+Após o merge local com #1094, os seletores live foram alinhados aos dialogs
+entregues pela #1050. A configuração padrão exclui a suíte live, e a nova
+configuração UI executa os dois casos mockados em três projetos sem retries.
+Os seis casos passaram; as 22 regressões de chamadas/clipboard também passaram
+após restringir os grants do helper a Chromium. Typecheck, ESLint e diff check
+dos arquivos ajustados passaram. A cobertura Go retomada com a configuração
+do CI e os builds restantes passaram; ver [pós-merge](../testing/ownership-1051-local-merge.md).

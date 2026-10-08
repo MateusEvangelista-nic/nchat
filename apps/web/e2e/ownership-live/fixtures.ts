@@ -129,9 +129,9 @@ export async function action(page: Page, f: LiveFixture, actor: Actor, label: st
   await page.getByRole("menuitem", { name: label, exact: true }).click();
 }
 
-export async function confirm(page: Page) {
+export async function confirm(page: Page, label = "Confirmar") {
   const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: "Confirmar", exact: true }).click();
+  await dialog.getByRole("button", { name: label, exact: true }).click();
   await expect(dialog).not.toBeVisible();
 }
 

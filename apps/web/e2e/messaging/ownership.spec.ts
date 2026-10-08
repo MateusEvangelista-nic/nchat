@@ -128,6 +128,8 @@ test("participant controls preserve the conversation and use an accessible mobil
   page,
 }, testInfo) => {
   const id = uniqueId(testInfo, "participants-ui");
+  // Prepare the long-history reply on desktop, then exercise both layouts below.
+  await page.setViewportSize({ width: 1280, height: 900 });
   const messages = Array.from({ length: 40 }, (_, index) =>
     makeMessage({
       id: `${id}-message-${index}`,

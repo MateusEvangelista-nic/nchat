@@ -59,8 +59,8 @@ for (const kind of ["group", "channel"] as Kind[]) {
           await expect(dialog).not.toBeVisible();
           await expect(composer).toContainText("qa-1051 draft");
           await action(primary.page, f, "C", "Transferir minha propriedade");
-          await dialog.getByLabel("Meu papel", { exact: true }).selectOption("admin");
-          await confirm(primary.page);
+          await dialog.getByRole("radio", { name: "Administrador", exact: true }).check();
+          await confirm(primary.page, "Transferir propriedade");
           await role(observer.page, kind, f, "C", "owner");
           await role(primary.page, kind, f, "A", "admin");
           await expect(composer).toContainText("qa-1051 draft");
@@ -117,11 +117,14 @@ for (const kind of ["group", "channel"] as Kind[]) {
           }
           await primary.page
             .getByRole("button", {
-              name: kind === "group" ? "Sair do grupo" : "Sair do canal",
+              name: "Sair da conversa",
               exact: true,
             })
             .click();
-          await confirm(primary.page);
+          await confirm(
+            primary.page,
+            scenario === "multiple-owners" ? "Sair da conversa" : "Sair e transferir",
+          );
           await role(observer.page, kind, f, "B", "owner");
           const denied = await request(primary.page, `${api(kind, f.id)}/details`);
           expect(denied.status).toBe(404);

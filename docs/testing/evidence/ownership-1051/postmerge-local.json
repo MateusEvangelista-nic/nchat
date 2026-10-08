@@ -1,0 +1,86 @@
+{
+  "merge_sha": "5e718b4e3825db5f62dbb1def358a117956ae343",
+  "develop_before_merge": "19e93af9ad4d94269432959e6cd7e87d2282d2d4",
+  "local_verification": "PASS",
+  "integrated_matrix": "BLOCKED",
+  "qa_adjustments": "Working-tree test changes after merge; no product files changed",
+  "go_harness": {
+    "result": "PASS",
+    "top_level_tests": 8,
+    "race_detector": true,
+    "duration_seconds": 1.023
+  },
+  "go_vet": { "result": "PASS" },
+  "postgres_matrix": {
+    "result": "PASS",
+    "executed": 196,
+    "skipped": 0,
+    "artifact": "postmerge-postgres.json"
+  },
+  "playwright_ownership_ui": {
+    "command": "pnpm --filter @nchat/web exec playwright test --config playwright.ownership-ui.config.ts",
+    "result": "PASS",
+    "passed": 6,
+    "failed": 0,
+    "retries": 0,
+    "projects": ["chromium", "firefox", "chromium-390"],
+    "api_ws": "mocked",
+    "duration_seconds": 29.7
+  },
+  "playwright_helper_regressions": {
+    "result": "PASS",
+    "passed": 22,
+    "failed": 0,
+    "browser": "chromium",
+    "api_ws": "mocked",
+    "duration_seconds": 42.3
+  },
+  "default_discovery": {
+    "result": "PASS",
+    "tests": 363,
+    "files": 35,
+    "ownership_live_included": false
+  },
+  "directed_typecheck_eslint": { "result": "PASS" },
+  "global_initial_attempt": {
+    "command": "pnpm run ci",
+    "result": "FAIL",
+    "exit_code": 1,
+    "reason": "Chat coverage 86.3% without CI PostgreSQL DSNs",
+    "duration_seconds_approx": 542,
+    "web_tests_passed": 6694,
+    "admin_tests_passed": 536
+  },
+  "go_coverage_resumed": {
+    "command": "pnpm test:coverage:go:check",
+    "result": "PASS",
+    "exit_code": 0,
+    "environment": "two isolated disposable PostgreSQL databases, DSNs as configured in CI",
+    "duration_seconds_approx": 122,
+    "minimum_percent": 90,
+    "module_percent": {
+      "platform": 94.2,
+      "admin-service": 91.3,
+      "auth-service": 90.8,
+      "chat-service": 90.7,
+      "document-converter": 92.8,
+      "file-service": 90.7,
+      "media-service": 92.4,
+      "notification-service": 96.0,
+      "search-service": 98.1
+    }
+  },
+  "remaining_builds": {
+    "command": "pnpm build",
+    "result": "PASS",
+    "exit_code": 0,
+    "duration_seconds_approx": 21
+  },
+  "qa_source_sha256": {
+    "apps/web/e2e/helpers/messagingApi.ts": "424d7b424f86d17d0dc8883cb69d413c0aa21a2f0a2977e6cd33ed9eb7f6ab4d",
+    "apps/web/e2e/messaging/ownership.spec.ts": "fd34a6fc784f169b849f6e3cb6f1bbcd3888ac07317e92d424032a8242a4162c",
+    "apps/web/e2e/ownership-live/fixtures.ts": "f27ba0d76cbc563905050b61f0d18f4cd76df87dd3749d382ff3868375ec906d",
+    "apps/web/e2e/ownership-live/matrix.spec.ts": "7e408aef25856780bda825a257d6976bb2eab93bc630143ab129782dbaa80d34",
+    "apps/web/playwright.ownership-ui.config.ts": "036e97981dbf0e5c180c11f92de4ec8e515e256d4758f9ce44aa02c37de90641"
+  }
+}
